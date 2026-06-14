@@ -6,12 +6,12 @@ import (
 	"sync"
 	"time"
 
-	"github.com/aegis-fabric/afp-sidecar/internal/config"
-	afpcontrol "github.com/aegis-fabric/afp-sidecar/internal/control"
-	"github.com/aegis-fabric/afp-sidecar/internal/core"
-	"github.com/aegis-fabric/afp-sidecar/internal/telemetry"
-	"github.com/aegis-fabric/afp-sidecar/internal/topology"
-	afpv1 "github.com/aegis-fabric/afp-sidecar/pkg/protocol/v1"
+	"github.com/FilthyMudblood/aegis-fabric/internal/config"
+	afpcontrol "github.com/FilthyMudblood/aegis-fabric/internal/control"
+	"github.com/FilthyMudblood/aegis-fabric/internal/core"
+	"github.com/FilthyMudblood/aegis-fabric/internal/telemetry"
+	"github.com/FilthyMudblood/aegis-fabric/internal/topology"
+	afpv1 "github.com/FilthyMudblood/aegis-fabric/pkg/protocol/v1"
 )
 
 var (

@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/aegis-fabric/afp-sidecar/internal/dataplane"
+	"github.com/FilthyMudblood/aegis-fabric/internal/dataplane"
 )
 
 func envOrDefault(key, fallback string) string {

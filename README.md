@@ -6,6 +6,8 @@
 
 中文文档：`README.zh-CN.md`
 
+**Whitepaper:** [AFP Technical Whitepaper](https://zenodo.org/records/20674352)
+
 ## Why This Project Exists
 
 Modern service infrastructure (L4/L7 proxies, service mesh, RPC gateways) is optimized for deterministic request/response systems. Autonomous agents are different: they are optimizers that can recursively delegate work, amplify mistakes, and create systemic externalities (tool storms, context explosion, deadlock loops).

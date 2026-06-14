@@ -3,7 +3,7 @@ package core
 import (
 	"sync/atomic"
 
-	"github.com/aegis-fabric/afp-sidecar/internal/config"
+	"github.com/FilthyMudblood/aegis-fabric/internal/config"
 )
 
 type EntropyMonitor struct {

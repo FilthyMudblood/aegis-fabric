@@ -6,9 +6,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/aegis-fabric/afp-sidecar/internal/config"
-	"github.com/aegis-fabric/afp-sidecar/internal/core"
-	afpv1 "github.com/aegis-fabric/afp-sidecar/pkg/protocol/v1"
+	"github.com/FilthyMudblood/aegis-fabric/internal/config"
+	"github.com/FilthyMudblood/aegis-fabric/internal/core"
+	afpv1 "github.com/FilthyMudblood/aegis-fabric/pkg/protocol/v1"
 )
 
 func newTestSEA(mode config.RunMode, simulatedUsage float64) *SingleExecutionAuthority {

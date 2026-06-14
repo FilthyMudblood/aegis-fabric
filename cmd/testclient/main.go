@@ -7,8 +7,8 @@ import (
 	"os"
 	"time"
 
-	"github.com/aegis-fabric/afp-sidecar/internal/dataplane"
-	afpv1 "github.com/aegis-fabric/afp-sidecar/pkg/protocol/v1"
+	"github.com/FilthyMudblood/aegis-fabric/internal/dataplane"
+	afpv1 "github.com/FilthyMudblood/aegis-fabric/pkg/protocol/v1"
 	"google.golang.org/protobuf/proto"
 )
 

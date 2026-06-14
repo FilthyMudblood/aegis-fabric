@@ -263,7 +263,7 @@ const file_afp_v1_governance_proto_rawDesc = "" +
 	"\x15dependency_collateral\x18\b \x01(\v2\x1c.afp.v1.DependencyCollateralR\x14dependencyCollateral\x12\x19\n" +
 	"\btrace_id\x18\t \x01(\tR\atraceId\x12'\n" +
 	"\x0frecursion_depth\x18\n" +
-	" \x01(\rR\x0erecursionDepthB;Z9github.com/aegis-fabric/afp-sidecar/pkg/protocol/v1;afpv1b\x06proto3"
+	" \x01(\rR\x0erecursionDepthB;Z9github.com/FilthyMudblood/aegis-fabric/pkg/protocol/v1;afpv1b\x06proto3"
 
 var (
 	file_afp_v1_governance_proto_rawDescOnce sync.Once

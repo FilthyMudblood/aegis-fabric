@@ -1,4 +1,4 @@
-module github.com/aegis-fabric/afp-sidecar
+module github.com/FilthyMudblood/aegis-fabric
 
 go 1.23.0
 

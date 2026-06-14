@@ -6,7 +6,7 @@ import (
 	"net"
 	"time"
 
-	afpv1 "github.com/aegis-fabric/afp-sidecar/pkg/protocol/v1"
+	afpv1 "github.com/FilthyMudblood/aegis-fabric/pkg/protocol/v1"
 	"google.golang.org/protobuf/proto"
 )
 

@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package afp.v1;
 
-option go_package = "github.com/aegis-fabric/afp-sidecar/pkg/protocol/v1;afpv1";
+option go_package = "github.com/FilthyMudblood/aegis-fabric/pkg/protocol/v1;afpv1";
 
 message EntropyLoad {
     float resource_asymmetry_ratio = 1;
