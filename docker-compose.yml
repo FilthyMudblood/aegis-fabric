@@ -1,0 +1,40 @@
+version: '3.8'
+
+services:
+  # ==============================================================
+  # Node A: 企业网格节点 (仅启用 Core 拥塞控制与递归防环路)
+  # ==============================================================
+  afp-enterprise-mesh:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: afp-mesh-node
+    environment:
+      - AFP_RUN_MODE=enterprise-mesh
+    ports:
+      - "8082:8082" # 暴露给 Host 测试
+    command: ["http_gateway"]
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://127.0.0.1:8082/healthz"]
+      interval: 5s
+      timeout: 3s
+      retries: 3
+
+  # ==============================================================
+  # Node B: 开放交换节点 (启用 Network 陌生人税与零信任隔离)
+  # ==============================================================
+  afp-open-exchange:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: afp-open-node
+    environment:
+      - AFP_RUN_MODE=open-exchange
+    ports:
+      - "8083:8082" # 映射到 Host 的 8083 防止冲突
+    command: ["http_gateway"]
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://127.0.0.1:8082/healthz"]
+      interval: 5s
+      timeout: 3s
+      retries: 3

@@ -1,0 +1,30 @@
+syntax = "proto3";
+
+package afp.v1;
+
+option go_package = "github.com/aegis-fabric/afp-sidecar/pkg/protocol/v1;afpv1";
+
+message EntropyLoad {
+    float resource_asymmetry_ratio = 1;
+    float dependency_contention_rate = 2;
+}
+
+message DependencyCollateral {
+    string collateral_type = 1;
+    float slash_threshold = 2;
+}
+
+message GovernanceHeader {
+    uint64 packet_id = 1;
+    uint32 version = 2;
+    uint64 hysteresis_epoch = 3;
+    uint32 coordination_ttl = 4;
+    
+    float cvp_score = 5;
+    bytes topology_consensus_hash = 6;
+    
+    EntropyLoad entropy_load = 7;
+    DependencyCollateral dependency_collateral = 8;
+    string trace_id = 9;
+    uint32 recursion_depth = 10;
+}

@@ -1,0 +1,3 @@
+./gossip.go
+./resolver.go
+./store_memory.go

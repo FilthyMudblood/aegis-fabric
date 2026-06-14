@@ -1,0 +1,49 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: agentos-node-alpha
+  labels:
+    app: agentos
+    afp-mesh: enabled
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "9090"
+    prometheus.io/path: "/metrics"
+spec:
+  containers:
+    # ---------------------------------------------------------
+    # 容器 1: 业务引擎 (AgentOS / Noesis)
+    # 它对 AFP 协议完全无感，只处理纯业务逻辑。
+    # 跨网格请求直接打向本地的 127.0.0.1:8081
+    # ---------------------------------------------------------
+    - name: agent-core
+      image: alpine:3.19
+      command: ["/bin/sh", "-c"]
+      args:
+        - |
+          echo "AgentOS Cognitive Engine starting..."
+          # 这里模拟 Agent 引擎的长期运行进程
+          tail -f /dev/null
+
+    # ---------------------------------------------------------
+    # 容器 2: 基础设施边车 (AFP Sidecar)
+    # 负责所有网络 I/O 的拦截、治理头封装、物理延迟注入和共识广播
+    # ---------------------------------------------------------
+    - name: afp-sidecar
+      image: local/afp-sidecar:latest
+      imagePullPolicy: Never # 方便本地测试
+      env:
+        - name: AFP_LOCAL_DID
+          value: "did:afp:seed:alpha"
+      ports:
+        - containerPort: 8080
+          name: mesh-ingress
+        - containerPort: 9090
+          name: metrics
+      resources:
+        limits:
+          cpu: "500m"
+          memory: "128Mi"
+        requests:
+          cpu: "100m"
+          memory: "64Mi"

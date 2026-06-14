@@ -1,0 +1,9 @@
+{
+  "seed_nodes": [
+    {
+      "peer_id": "did:afp:node:b",
+      "cvp": 0.95,
+      "endpoint": "node-b:8080"
+    }
+  ]
+}

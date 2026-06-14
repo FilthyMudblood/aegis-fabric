@@ -1,0 +1,21 @@
+.DS_Store
+
+# Go build artifacts
+bin/
+*.test
+*.out
+coverage.out
+
+# Local binaries built into project root
+sidecar
+egressclient
+node_z
+looptester
+modetester
+http_gateway
+
+# Local runtime logs
+*.log
+
+# Optional generated evidence snapshots
+artifacts/screenshots/

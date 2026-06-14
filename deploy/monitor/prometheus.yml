@@ -1,0 +1,10 @@
+global:
+  scrape_interval: 5s # 基础设施级监控需要较高频率的采样
+  evaluation_interval: 5s
+
+scrape_configs:
+  - job_name: 'afp-sidecar'
+    static_configs:
+      # 在 macOS/Windows 的 Docker 中，host.docker.internal 指向宿主机 IP
+      # 对应我们 Sidecar 启动的 :9090 metrics 端口
+      - targets: ['host.docker.internal:9090']

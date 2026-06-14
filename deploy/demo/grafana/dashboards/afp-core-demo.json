@@ -1,0 +1,70 @@
+{
+  "uid": "afp-core-demo",
+  "title": "AFP Core Demo",
+  "tags": ["afp", "demo", "governance"],
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "5s",
+  "time": {
+    "from": "now-15m",
+    "to": "now"
+  },
+  "panels": [
+    {
+      "id": 1,
+      "title": "Ingress Reject Rate (1m)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(rate(afp_ingress_actions_total{action=~\"drop_.*|stranger_tax_reject|circuit_breaker_oom\"}[1m])) or on() vector(0)",
+          "legendFormat": "reject_rate"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "title": "Fast Path Throughput (1m)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(rate(afp_ingress_actions_total{action=\"fast_path\"}[1m])) or on() vector(0)",
+          "legendFormat": "fast_path_rate"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "title": "CVP Penalty Events (1m)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(rate(afp_cvp_penalty_events_total[1m])) or on() vector(0)",
+          "legendFormat": "cvp_penalty_rate"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "title": "Injected Delay p95 (5m)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "histogram_quantile(0.95, sum by (le) (rate(afp_injected_delay_milliseconds_bucket[5m]))) or on() vector(0)",
+          "legendFormat": "p95_delay_ms"
+        }
+      ]
+    }
+  ]
+}

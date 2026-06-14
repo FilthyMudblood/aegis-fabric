@@ -1,0 +1,41 @@
+package config
+
+import (
+	"os"
+	"strings"
+)
+
+type RunMode string
+
+const (
+	ModeEnterpriseMesh RunMode = "enterprise-mesh" // 仅启用 AFP-Core (内部拥塞控制)
+	ModeOpenExchange   RunMode = "open-exchange"   // 启用 AFP-Core + Network (公网零信任)
+)
+
+type CoreConfig struct {
+	MaxToolConcurrency int     // 触发 Tool Storm 预警的并发工具调用数
+	MemoryWarnRatio    float64 // 上下文爆炸预警线 (例如 0.8)
+	OOMPanicRatio      float64 // 物理熔断线 (例如 0.95，防止 K8s OOMKill)
+}
+
+type SidecarConfig struct {
+	Mode RunMode
+	Core CoreConfig
+}
+
+// LoadEnvConfig loads the deterministic run mode from Kubernetes ConfigMaps/Env.
+func LoadEnvConfig() *SidecarConfig {
+	mode := ModeEnterpriseMesh // 默认为企业内网模式
+	if strings.ToLower(os.Getenv("AFP_RUN_MODE")) == string(ModeOpenExchange) {
+		mode = ModeOpenExchange
+	}
+
+	return &SidecarConfig{
+		Mode: mode,
+		Core: CoreConfig{
+			MaxToolConcurrency: 50,
+			MemoryWarnRatio:    0.75,
+			OOMPanicRatio:      0.90,
+		},
+	}
+}
