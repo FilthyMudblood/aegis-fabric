@@ -2,17 +2,20 @@
 
 **A runtime coordination layer for autonomous agent networks.**
 
-> **"TCP routes packets. AFP governs optimizers."**
+> **"TCP governs packets. AFP governs optimizers."**
+> *(TCP 治理数据包，AFP 治理优化器)*
+
+Traditional Internet infrastructure (like TCP and Istio) was designed under the assumption that network participants are passive executors of external instructions. However, in the era of Autonomous AI Agents, nodes are **active optimizers**. They formulate plans, adapt strategies, and recursively delegate tasks to achieve local objectives.
+
+As networks evolve into intent-driven environments, legacy rate-limiters and service meshes fail. Without cybernetic constraints, unconstrained agent optimization inevitably leads to **retry cascades, resource exploitation, recursive delegation storms, and global coordination collapse.**
+
+**Aegis Fabric Protocol (AFP)** introduces the *Consequence Persistence Layer (CPL)*. By embedding physical constraints and adaptive friction directly into out-of-band sidecars, AFP ensures that network stability emerges from decentralized consequence enforcement rather than centralized control.
+
+---
 
 中文文档：`README.zh-CN.md`
 
 **Whitepaper:** [AFP Technical Whitepaper](https://zenodo.org/records/20674352)
-
-## Why This Project Exists
-
-Modern service infrastructure (L4/L7 proxies, service mesh, RPC gateways) is optimized for deterministic request/response systems. Autonomous agents are different: they are optimizers that can recursively delegate work, amplify mistakes, and create systemic externalities (tool storms, context explosion, deadlock loops).
-
-AFP Sidecar introduces an out-of-band governance runtime to control those failure modes before they propagate through the network.
 
 ## Current Implementation Status
 

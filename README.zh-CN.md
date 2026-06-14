@@ -2,7 +2,16 @@
 
 `AFP Sidecar` 是一个面向 Agent 网络的治理运行时。它在请求进入本地执行环境前，执行物理层控制（熵压、信誉、递归安全）与策略裁决。
 
-> **“TCP 路由数据包，AFP 治理优化器。”**
+> **"TCP governs packets. AFP governs optimizers."**
+> *(TCP 治理数据包，AFP 治理优化器)*
+
+传统互联网基础设施（如 TCP 与 Istio）的设计前提是：网络参与者是外部指令的被动执行者。然而在自主 AI Agent 时代，节点已成为**主动优化器**——它们制定计划、调整策略，并递归地委派任务以实现本地目标。
+
+随着网络演变为意图驱动环境，传统的限流器与服务网格已力不从心。若缺乏控制论层面的约束，不受限制的 Agent 优化必然导致**重试级联、资源滥用、递归委派风暴，以及全局协作崩溃。**
+
+**Aegis Fabric Protocol（AFP）** 引入了*后果持久层（Consequence Persistence Layer, CPL）*。通过将物理约束与自适应摩擦直接嵌入带外（out-of-band）Sidecar，AFP 使网络稳定性源于去中心化的后果执行，而非中心化管控。
+
+---
 
 英文文档：`README.md`
 
