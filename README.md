@@ -33,6 +33,49 @@ Not yet fully production-complete (planned/hardenable):
 - cgroups memory source is currently runtime fallback, not full `/sys/fs/cgroup` reader
 - topology referral and gossip transport are scaffolded with test stubs
 
+## Empirical Proof
+
+AFP is not only specified in the [whitepaper](https://zenodo.org/records/20674352) — this repository ships a **reproducible test demo** that exercises CPL mechanisms end-to-end and exports machine-readable evidence.
+
+### What the demo proves
+
+| Layer | Mechanism under test | How to run | Expected signal |
+|-------|---------------------|------------|-----------------|
+| **L7 blackbox** | Fast-path admission, recursion breaker, stranger tax | `docker compose up -d --build` then `./scripts/verify_http_gateway.sh` | `200` normal traffic · `508` depth > 10 · `403` untrusted stranger |
+| **Governance kernel** | Run-mode feature gates + ingress FSM | `./scripts/verify_modes.sh` · `./scripts/verify_recursion_loop.sh` | Enterprise mesh bypasses stranger tax; open-exchange rejects strangers; recursion depth trips breaker |
+| **Monte Carlo** | Baseline vs AFP under malicious load | `go run ./cmd/simulator` | Over 1,000 runs × 500 nodes (5% malicious), AFP sustains higher alive-node counts and lower average load than an unconstrained baseline |
+| **Telemetry bundle** | Prometheus metrics + Grafana panels | `make demo-report` | Exports `artifacts/report/` with query JSON, dashboard snapshots, and HTML report |
+
+### One-shot reproduction
+
+```bash
+# 1) Start dual-mode HTTP gateway nodes
+docker compose up -d --build
+
+# 2) Run blackbox integration checks (200 / 508 / 403)
+./scripts/verify_http_gateway.sh
+
+# 3) Validate governance kernel behavior
+./scripts/verify_modes.sh
+./scripts/verify_recursion_loop.sh
+
+# 4) Compare Baseline vs AFP resilience (Monte Carlo)
+go run ./cmd/simulator
+
+# 5) Generate observable evidence bundle (Grafana + Prometheus)
+make demo-report
+```
+
+### Committed evidence artifacts
+
+A prior demo run is checked in under `artifacts/`:
+
+- `artifacts/report/report.html` — human-readable summary
+- `artifacts/report/prometheus/*.json` — raw PromQL query results (ingress reject rate, fast-path throughput, CVP penalties, injected delay p95)
+- `artifacts/screenshots/*.png` — Grafana panel exports (generated on next `make demo-report`)
+
+Key telemetry dimensions captured: **ingress reject rate**, **fast-path throughput**, **CVP penalty events**, and **adaptive friction (injected delay p95)** — the observable signatures of decentralized consequence enforcement.
+
 ## Tech Stack
 
 - Go (`go 1.23+`)

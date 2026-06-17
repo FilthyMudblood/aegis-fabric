@@ -1,6 +1,8 @@
 # AFP Sidecar（中文说明）
 
-`AFP Sidecar` 是一个面向 Agent 网络的治理运行时。它在请求进入本地执行环境前，执行物理层控制（熵压、信誉、递归安全）与策略裁决。
+**面向自主 Agent 网络的运行时协调层。**
+
+`AFP Sidecar` 是本仓库的可运行实现：在请求进入本地执行环境前，执行物理层控制（熵压、信誉、递归安全）与策略裁决。
 
 > **"TCP governs packets. AFP governs optimizers."**
 > *(TCP 治理数据包，AFP 治理优化器)*
@@ -32,6 +34,49 @@
 - 密码学签名校验仍是简化实现
 - cgroups 内存读取当前采用 runtime fallback（未完整接 `/sys/fs/cgroup`）
 - 拓扑 referral / gossip 传输为测试桩形态
+
+## 实证验证（Empirical Proof）
+
+AFP 不仅在[白皮书](https://zenodo.org/records/20674352)中有理论阐述——本仓库还提供**可复现的测试 Demo**，端到端验证 CPL 机制，并导出机器可读证据。
+
+### Demo 验证了什么
+
+| 层级 | 被测机制 | 运行方式 | 预期信号 |
+|------|---------|---------|---------|
+| **L7 黑盒** | 快路径准入、递归断路、陌生人税 | `docker compose up -d --build` 后执行 `./scripts/verify_http_gateway.sh` | 正常流量 `200` · 深度 > 10 返回 `508` · 不可信陌生人 `403` |
+| **治理内核** | 运行模式开关 + Ingress FSM | `./scripts/verify_modes.sh` · `./scripts/verify_recursion_loop.sh` | 企业网格绕过陌生人税；开放交换拦截陌生人；递归深度触发断路 |
+| **Monte Carlo** | 恶意负载下 Baseline vs AFP | `go run ./cmd/simulator` | 1,000 次推演 × 500 节点（5% 恶意），AFP 维持更高存活节点数与更低平均负载 |
+| **遥测证据包** | Prometheus 指标 + Grafana 面板 | `make demo-report` | 导出 `artifacts/report/`：PromQL JSON、面板截图、HTML 报告 |
+
+### 一键复现
+
+```bash
+# 1) 启动双模式 HTTP Gateway 节点
+docker compose up -d --build
+
+# 2) 黑盒集成验证（200 / 508 / 403）
+./scripts/verify_http_gateway.sh
+
+# 3) 治理内核行为验证
+./scripts/verify_modes.sh
+./scripts/verify_recursion_loop.sh
+
+# 4) Baseline vs AFP 韧性对比（Monte Carlo）
+go run ./cmd/simulator
+
+# 5) 生成可观测性证据包（Grafana + Prometheus）
+make demo-report
+```
+
+### 已提交的证据产物
+
+`artifacts/` 目录包含一次 Demo 运行的快照：
+
+- `artifacts/report/report.html` — 可读性摘要
+- `artifacts/report/prometheus/*.json` — PromQL 原始查询结果（入口拒绝率、快路径吞吐、CVP 惩罚、注入延迟 p95）
+- `artifacts/screenshots/*.png` — Grafana 面板导出（下次 `make demo-report` 时生成）
+
+捕获的核心遥测维度：**入口拒绝率**、**快路径吞吐**、**CVP 惩罚事件**、**自适应摩擦（注入延迟 p95）**——即去中心化后果执行的可观测签名。
 
 ## 技术栈
 
@@ -99,13 +144,15 @@ go run ./cmd/egressclient
 
 ## 黑盒双模演示（Docker Compose）
 
+> 完整复现流程见上方 [实证验证](#实证验证empirical-proof)。
+
 ```bash
-docker-compose up -d --build
+docker compose up -d --build
 ```
 
 会启动两个节点：
-- `localhost:8082`：`enterprise-mesh`
-- `localhost:8083`：`open-exchange`
+- `afp-mesh-node` · `localhost:8082`（`enterprise-mesh`）
+- `afp-open-node` · `localhost:8083`（`open-exchange`）
 
 预期行为：
 - `8082` 正常请求返回 `200`
@@ -114,12 +161,16 @@ docker-compose up -d --build
 
 ## 自动化验证脚本
 
+> 一键运行全部验证见上方 [实证验证](#实证验证empirical-proof) 中的命令。
+
 - 模式开关验证：`./scripts/verify_modes.sh`
 - 递归断路验证：`./scripts/verify_recursion_loop.sh`
 - HTTP 黑盒集成验证（针对已运行容器）：`./scripts/verify_http_gateway.sh`
 - Protobuf 生成：`./scripts/gen_proto.sh`
 
 ## Monte Carlo 推演
+
+> Baseline vs AFP 对比方法见上方 [实证验证](#实证验证empirical-proof)。
 
 本地运行：
 
@@ -155,6 +206,8 @@ Grafana：
 - 默认账号密码：`admin / admin`
 
 ## Demo 与证据导出
+
+> 证据包结构与遥测维度见上方 [实证验证](#实证验证empirical-proof)。
 
 ```bash
 make demo-snapshots
