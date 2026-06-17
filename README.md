@@ -11,6 +11,17 @@ As networks evolve into intent-driven environments, legacy rate-limiters and ser
 
 **Aegis Fabric Protocol (AFP)** introduces the *Consequence Persistence Layer (CPL)*. By embedding physical constraints and adaptive friction directly into out-of-band sidecars, AFP ensures that network stability emerges from decentralized consequence enforcement rather than centralized control.
 
+### Empirical Proof — Monte Carlo
+
+We stress-tested AFP's cybernetic controls in a high-frequency agent mesh: **1,000 Monte Carlo runs** (law of large numbers) over **500 autonomous nodes**, **5% malicious** actors emitting recursive delegation storms and high externalities, across **100 epochs**.
+
+| Network | Outcome after 100 epochs |
+|---------|--------------------------|
+| **Baseline** (no CPL) | Survivors collapse **500 → 2.05** (~**0.4%** alive). Shared compute and context memory are drained; healthy nodes are swept into OOM retry cascades — **coordination collapse**. |
+| **AFP** | **500.00** healthy nodes remain (**100% topological survival**). Preemptive circuit breaking and asymmetric hysteresis penalties quarantine malicious entropy pressure into disconnected subgraphs — without sacrificing healthy throughput. |
+
+Reproduce: `go run ./cmd/simulator` · Details in [Empirical Proof](#empirical-proof) below.
+
 ---
 
 中文文档：`README.zh-CN.md`
