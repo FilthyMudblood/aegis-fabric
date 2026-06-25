@@ -1,0 +1,41 @@
+syntax = "proto3";
+
+package afp.v1.sdk;
+
+option go_package = "github.com/FilthyMudblood/aegis-fabric/pkg/protocol/v1/sdk;afpsdk";
+
+// AFPSidecarIPC is served over a Unix Domain Socket inside the same Pod as the agent.
+service AFPSidecarIPC {
+  // PreFlightCheck probes physical entropy before intent generation or outbound I/O.
+  rpc PreFlightCheck(PreFlightRequest) returns (PreFlightResponse);
+
+  // ReportInternalState feeds application-layer context into EntropyMonitor (write path).
+  rpc ReportInternalState(InternalStateReport) returns (StateAck);
+}
+
+message PreFlightRequest {
+  string trace_id = 1;
+  string target_did = 2;
+  uint32 estimated_tasks = 3;
+}
+
+message PreFlightResponse {
+  enum Action {
+    PERMISSIVE = 0;
+    THROTTLED = 1;
+    ISOLATED = 2;
+  }
+
+  Action action = 1;
+  uint32 delay_ms = 2;
+  string block_reason = 3;
+}
+
+message InternalStateReport {
+  uint32 current_recursion_depth = 1;
+  uint64 context_memory_bytes = 2;
+}
+
+message StateAck {
+  bool received = 1;
+}

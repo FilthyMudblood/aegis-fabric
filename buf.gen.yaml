@@ -5,3 +5,7 @@ plugins:
     out: .
     opt:
       - module=github.com/FilthyMudblood/aegis-fabric
+  - local: protoc-gen-go-grpc
+    out: .
+    opt:
+      - module=github.com/FilthyMudblood/aegis-fabric

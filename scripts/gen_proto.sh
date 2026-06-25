@@ -12,4 +12,10 @@ if ! command -v protoc-gen-go >/dev/null 2>&1; then
   exit 1
 fi
 
+if ! command -v protoc-gen-go-grpc >/dev/null 2>&1; then
+  echo "error: protoc-gen-go-grpc is not installed" >&2
+  echo "hint: go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest" >&2
+  exit 1
+fi
+
 buf generate

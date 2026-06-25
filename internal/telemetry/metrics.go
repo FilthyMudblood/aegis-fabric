@@ -52,4 +52,13 @@ var (
 		},
 		[]string{"peer_id"},
 	)
+
+	// PreFlightActionTotal tracks SDK IPC pre-flight governance decisions.
+	PreFlightActionTotal = promauto.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "afp_preflight_actions_total",
+			Help: "Total number of SDK pre-flight actions enforced before intent generation",
+		},
+		[]string{"action"}, // permissive, throttled, isolated
+	)
 )

@@ -8,12 +8,13 @@ bin/
 coverage.out
 
 # Local binaries built into project root
-sidecar
-egressclient
-node_z
-looptester
-modetester
-http_gateway
+/sidecar
+/egressclient
+/node_z
+/looptester
+/modetester
+/http_gateway
+/preflightclient
 
 # Local runtime logs
 *.log
