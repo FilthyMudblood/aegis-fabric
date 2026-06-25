@@ -1,0 +1,221 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: afp-agent-node-template
+  namespace: afp-system
+  labels:
+    app.kubernetes.io/name: aegis-fabric
+    app.kubernetes.io/component: agent-node
+    afp.mesh/role: enterprise-worker
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "9090"
+    prometheus.io/path: "/metrics"
+    afp.aegis-fabric.io/ipc-socket: "/var/run/afp/agent.sock"
+spec:
+  # Agent + Sidecar share the pod network namespace (localhost egress on 127.0.0.1:8081).
+  restartPolicy: Always
+
+  volumes:
+    - name: afp-ipc-socket
+      emptyDir: {}
+    - name: afp-bootstrap
+      configMap:
+        name: afp-sidecar-bootstrap
+        items:
+          - key: bootstrap.json
+            path: bootstrap.json
+
+  containers:
+    # ---------------------------------------------------------
+    # Container 1: Agent runtime (LangGraph / CrewAI / custom)
+    # AFP SDK talks to the sidecar over the shared UDS volume.
+    # ---------------------------------------------------------
+    - name: agent-core
+      image: python:3.11-slim
+      imagePullPolicy: IfNotPresent
+      command: ["/bin/sh", "-c"]
+      args:
+        - |
+          echo "Agent runtime starting with AFP SDK IPC at ${AFP_IPC_SOCKET}"
+          pip install --no-cache-dir grpcio protobuf >/dev/null 2>&1 || true
+          exec tail -f /dev/null
+      envFrom:
+        - configMapRef:
+            name: afp-agent-config
+      volumeMounts:
+        - name: afp-ipc-socket
+          mountPath: /var/run/afp
+      resources:
+        requests:
+          cpu: "250m"
+          memory: "512Mi"
+        limits:
+          cpu: "2"
+          memory: "2Gi"
+
+    # ---------------------------------------------------------
+    # Container 2: AFP Sidecar (governance + SDK IPC server)
+    # NET_ADMIN reserved for future iptables/eBPF socket enforcement.
+    # ---------------------------------------------------------
+    - name: afp-sidecar
+      image: ghcr.io/filthymudblood/aegis-fabric-sidecar:latest
+      imagePullPolicy: IfNotPresent
+      command: ["sidecar"]
+      envFrom:
+        - configMapRef:
+            name: afp-sidecar-config
+      env:
+        - name: AFP_BOOTSTRAP_PATH
+          value: /etc/afp/bootstrap.json
+      ports:
+        - name: mesh-ingress
+          containerPort: 8080
+          protocol: TCP
+        - name: local-egress
+          containerPort: 8081
+          protocol: TCP
+        - name: metrics
+          containerPort: 9090
+          protocol: TCP
+      securityContext:
+        allowPrivilegeEscalation: false
+        capabilities:
+          add:
+            - NET_ADMIN
+      volumeMounts:
+        - name: afp-ipc-socket
+          mountPath: /var/run/afp
+        - name: afp-bootstrap
+          mountPath: /etc/afp
+          readOnly: true
+      readinessProbe:
+        exec:
+          command:
+            - /bin/sh
+            - -c
+            - test -S /var/run/afp/agent.sock
+        initialDelaySeconds: 2
+        periodSeconds: 5
+      livenessProbe:
+        httpGet:
+          path: /metrics
+          port: metrics
+        initialDelaySeconds: 5
+        periodSeconds: 10
+      resources:
+        requests:
+          cpu: "100m"
+          memory: "128Mi"
+        limits:
+          cpu: "500m"
+          memory: "512Mi"
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: afp-agent-node
+  namespace: afp-system
+  labels:
+    app.kubernetes.io/name: aegis-fabric
+    app.kubernetes.io/component: agent-node
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: aegis-fabric
+      app.kubernetes.io/component: agent-node
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: aegis-fabric
+        app.kubernetes.io/component: agent-node
+        afp.mesh/role: enterprise-worker
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9090"
+        prometheus.io/path: "/metrics"
+    spec:
+      volumes:
+        - name: afp-ipc-socket
+          emptyDir: {}
+        - name: afp-bootstrap
+          configMap:
+            name: afp-sidecar-bootstrap
+            items:
+              - key: bootstrap.json
+                path: bootstrap.json
+
+      containers:
+        - name: agent-core
+          image: python:3.11-slim
+          imagePullPolicy: IfNotPresent
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              echo "Agent runtime starting with AFP SDK IPC at ${AFP_IPC_SOCKET}"
+              exec tail -f /dev/null
+          envFrom:
+            - configMapRef:
+                name: afp-agent-config
+          volumeMounts:
+            - name: afp-ipc-socket
+              mountPath: /var/run/afp
+          resources:
+            requests:
+              cpu: "250m"
+              memory: "512Mi"
+            limits:
+              cpu: "2"
+              memory: "2Gi"
+
+        - name: afp-sidecar
+          image: ghcr.io/filthymudblood/aegis-fabric-sidecar:latest
+          imagePullPolicy: IfNotPresent
+          command: ["sidecar"]
+          envFrom:
+            - configMapRef:
+                name: afp-sidecar-config
+          env:
+            - name: AFP_BOOTSTRAP_PATH
+              value: /etc/afp/bootstrap.json
+          ports:
+            - name: mesh-ingress
+              containerPort: 8080
+            - name: local-egress
+              containerPort: 8081
+            - name: metrics
+              containerPort: 9090
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              add:
+                - NET_ADMIN
+          volumeMounts:
+            - name: afp-ipc-socket
+              mountPath: /var/run/afp
+            - name: afp-bootstrap
+              mountPath: /etc/afp
+              readOnly: true
+          readinessProbe:
+            exec:
+              command:
+                - /bin/sh
+                - -c
+                - test -S /var/run/afp/agent.sock
+            initialDelaySeconds: 2
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /metrics
+              port: metrics
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"

@@ -67,7 +67,7 @@ func (sea *SingleExecutionAuthority) HandleIngress(ctx context.Context, peerID s
 	realEntropy := sea.entropy.CalculateCoreEntropy()
 
 	// K8s 保护机制：如果当前内存逼近 OOM 或 工具调用发生雪崩
-	if realEntropy >= 0.95 {
+	if realEntropy >= sea.entropyCircuitBreakerThreshold() {
 		telemetry.IngressActionTotal.WithLabelValues("circuit_breaker_oom").Inc()
 		return errors.New("afp-core: critical context explosion or tool storm detected, circuit breaker open")
 	}

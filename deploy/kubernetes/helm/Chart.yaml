@@ -1,0 +1,6 @@
+apiVersion: v2
+name: aegis-fabric
+description: Enterprise AFP sidecar + agent co-deployment
+type: application
+version: 0.1.0
+appVersion: "0.1.0"

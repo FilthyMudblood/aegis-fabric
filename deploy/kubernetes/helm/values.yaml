@@ -1,0 +1,16 @@
+namespace: afp-system
+
+agent:
+  image: python:3.11-slim
+  failMode: closed
+  ipcSocket: /var/run/afp/agent.sock
+
+sidecar:
+  image: ghcr.io/filthymudblood/aegis-fabric-sidecar:latest
+  runMode: enterprise-mesh
+  entropyLimit: "0.95"
+  maxContextBytes: "536870912"
+  localDID: did:afp:agent:enterprise-alpha
+
+network:
+  netAdmin: true

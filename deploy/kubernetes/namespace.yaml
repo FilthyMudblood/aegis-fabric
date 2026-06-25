@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: afp-system
+  labels:
+    app.kubernetes.io/name: aegis-fabric
+    app.kubernetes.io/component: control-plane

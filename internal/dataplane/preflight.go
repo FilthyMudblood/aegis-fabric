@@ -10,7 +10,13 @@ import (
 
 const localAgentPeerID = "local-agent"
 
-const preFlightCircuitBreakerThreshold = float32(0.95)
+func (sea *SingleExecutionAuthority) entropyCircuitBreakerThreshold() float32 {
+	limit := sea.cfg.Core.EntropyLimit
+	if limit <= 0 {
+		limit = 0.95
+	}
+	return float32(limit)
+}
 
 // ReportInternalState ingests application-layer telemetry into EntropyMonitor.
 func (sea *SingleExecutionAuthority) ReportInternalState(recursionDepth uint32, contextMemoryBytes uint64) {
@@ -31,7 +37,7 @@ func (sea *SingleExecutionAuthority) EvaluatePreFlight(traceID, targetDID string
 	}
 
 	realEntropy := sea.entropy.CalculatePreFlightEntropy(estimatedTasks)
-	if realEntropy >= preFlightCircuitBreakerThreshold {
+	if realEntropy >= sea.entropyCircuitBreakerThreshold() {
 		telemetry.PreFlightActionTotal.WithLabelValues("isolated").Inc()
 		return &afpsdk.PreFlightResponse{
 			Action:      afpsdk.PreFlightResponse_ISOLATED,

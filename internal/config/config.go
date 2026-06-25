@@ -18,6 +18,7 @@ type CoreConfig struct {
 	MemoryWarnRatio    float64 // 上下文爆炸预警线 (例如 0.8)
 	OOMPanicRatio      float64 // 物理熔断线 (例如 0.95，防止 K8s OOMKill)
 	MaxContextBytes    uint64  // SDK 上报的应用层上下文上限（字节）
+	EntropyLimit       float64 // 预防性熔断红线 (AFP_ENTROPY_LIMIT)
 }
 
 type SidecarConfig struct {
@@ -39,8 +40,21 @@ func LoadEnvConfig() *SidecarConfig {
 			MemoryWarnRatio:    0.75,
 			OOMPanicRatio:      0.90,
 			MaxContextBytes:    envUint64OrDefault("AFP_MAX_CONTEXT_BYTES", 512*1024*1024),
+			EntropyLimit:       envFloat64OrDefault("AFP_ENTROPY_LIMIT", 0.95),
 		},
 	}
+}
+
+func envFloat64OrDefault(key string, fallback float64) float64 {
+	raw := strings.TrimSpace(os.Getenv(key))
+	if raw == "" {
+		return fallback
+	}
+	v, err := strconv.ParseFloat(raw, 64)
+	if err != nil {
+		return fallback
+	}
+	return v
 }
 
 func envUint64OrDefault(key string, fallback uint64) uint64 {
