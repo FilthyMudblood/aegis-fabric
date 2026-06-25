@@ -25,6 +25,9 @@ spec:
         items:
           - key: bootstrap.json
             path: bootstrap.json
+    - name: afp-policy
+      configMap:
+        name: afp-sidecar-config
 
   containers:
     # ---------------------------------------------------------
@@ -88,6 +91,9 @@ spec:
           mountPath: /var/run/afp
         - name: afp-bootstrap
           mountPath: /etc/afp
+          readOnly: true
+        - name: afp-policy
+          mountPath: /etc/afp/policy
           readOnly: true
       readinessProbe:
         exec:

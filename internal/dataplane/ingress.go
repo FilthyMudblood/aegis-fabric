@@ -22,6 +22,7 @@ var (
 
 type SingleExecutionAuthority struct {
 	cfg         *config.SidecarConfig
+	runtime     *config.RuntimePolicy
 	entropy     *core.EntropyMonitor
 	fsmRegistry sync.Map
 	lastCVP     sync.Map
@@ -38,6 +39,7 @@ func NewSingleExecutionAuthority(
 ) *SingleExecutionAuthority {
 	return &SingleExecutionAuthority{
 		cfg:         cfg,
+		runtime:     config.NewRuntimePolicy(cfg.Core),
 		entropy:     entropy,
 		fsmRegistry: sync.Map{},
 		lastCVP:     sync.Map{},
@@ -47,12 +49,16 @@ func NewSingleExecutionAuthority(
 	}
 }
 
+func (sea *SingleExecutionAuthority) RuntimePolicy() *config.RuntimePolicy {
+	return sea.runtime
+}
+
 func (sea *SingleExecutionAuthority) HandleIngress(ctx context.Context, peerID string, header *afpv1.GovernanceHeader) error {
 	// ==========================================
 	// 1. 分布式递归断路器 (Distributed Recursion Breaker)
 	// ==========================================
-	if header.RecursionDepth > 10 {
-		return errors.New("afp-core: recursion depth exceeded physical limit (10), network loop detected")
+	if header.RecursionDepth > sea.runtime.MaxRecursionDepth() {
+		return errors.New("afp-core: recursion depth exceeded physical limit, network loop detected")
 	}
 
 	// ==========================================

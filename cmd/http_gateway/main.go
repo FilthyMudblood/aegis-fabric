@@ -76,7 +76,7 @@ func main() {
 			case errors.Is(err, dataplane.ErrTopologyIsolated):
 				http.Error(w, "topology isolated", http.StatusServiceUnavailable)
 			default:
-				if err.Error() == "afp-core: recursion depth exceeded physical limit (10), network loop detected" {
+				if err.Error() == "afp-core: recursion depth exceeded physical limit, network loop detected" {
 					http.Error(w, err.Error(), http.StatusLoopDetected)
 				} else if err.Error() == "afp-core: critical context explosion or tool storm detected, circuit breaker open" {
 					http.Error(w, err.Error(), http.StatusServiceUnavailable)

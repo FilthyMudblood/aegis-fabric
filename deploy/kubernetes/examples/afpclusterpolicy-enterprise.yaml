@@ -1,0 +1,12 @@
+apiVersion: afp.aegis-fabric.io/v1alpha1
+kind: AFPClusterPolicy
+metadata:
+  name: enterprise-default
+spec:
+  targetNamespaces:
+    - afp-system
+  entropyLimit: 0.95
+  maxRecursionDepth: 10
+  runMode: enterprise-mesh
+  failMode: closed
+  maxContextBytes: 536870912

@@ -19,6 +19,7 @@ type CoreConfig struct {
 	OOMPanicRatio      float64 // 物理熔断线 (例如 0.95，防止 K8s OOMKill)
 	MaxContextBytes    uint64  // SDK 上报的应用层上下文上限（字节）
 	EntropyLimit       float64 // 预防性熔断红线 (AFP_ENTROPY_LIMIT)
+	MaxRecursionDepth  uint32  // 递归深度物理红线 (AFP_MAX_RECURSION_DEPTH)
 }
 
 type SidecarConfig struct {
@@ -41,6 +42,7 @@ func LoadEnvConfig() *SidecarConfig {
 			OOMPanicRatio:      0.90,
 			MaxContextBytes:    envUint64OrDefault("AFP_MAX_CONTEXT_BYTES", 512*1024*1024),
 			EntropyLimit:       envFloat64OrDefault("AFP_ENTROPY_LIMIT", 0.95),
+			MaxRecursionDepth:  uint32(envUint64OrDefault("AFP_MAX_RECURSION_DEPTH", 10)),
 		},
 	}
 }

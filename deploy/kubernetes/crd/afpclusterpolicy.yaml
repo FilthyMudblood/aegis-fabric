@@ -1,0 +1,85 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: afpclusterpolicies.afp.aegis-fabric.io
+  labels:
+    app.kubernetes.io/name: aegis-fabric
+    app.kubernetes.io/component: policy-controller
+spec:
+  group: afp.aegis-fabric.io
+  scope: Cluster
+  names:
+    plural: afpclusterpolicies
+    singular: afpclusterpolicy
+    kind: AFPClusterPolicy
+    shortNames:
+      - afppol
+  versions:
+    - name: v1alpha1
+      served: true
+      storage: true
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            spec:
+              type: object
+              properties:
+                targetNamespaces:
+                  type: array
+                  items:
+                    type: string
+                entropyLimit:
+                  type: number
+                  minimum: 0
+                  maximum: 1
+                maxRecursionDepth:
+                  type: integer
+                  minimum: 1
+                  maximum: 64
+                runMode:
+                  type: string
+                  enum:
+                    - enterprise-mesh
+                    - open-exchange
+                failMode:
+                  type: string
+                  enum:
+                    - open
+                    - closed
+                maxContextBytes:
+                  type: integer
+                  minimum: 1
+              required:
+                - entropyLimit
+                - maxRecursionDepth
+                - runMode
+                - failMode
+            status:
+              type: object
+              properties:
+                observedGeneration:
+                  type: string
+                phase:
+                  type: string
+                message:
+                  type: string
+                reconciledNamespaces:
+                  type: array
+                  items:
+                    type: string
+      subresources:
+        status: {}
+      additionalPrinterColumns:
+        - name: Entropy
+          type: string
+          jsonPath: .spec.entropyLimit
+        - name: Recursion
+          type: integer
+          jsonPath: .spec.maxRecursionDepth
+        - name: RunMode
+          type: string
+          jsonPath: .spec.runMode
+        - name: FailMode
+          type: string
+          jsonPath: .spec.failMode

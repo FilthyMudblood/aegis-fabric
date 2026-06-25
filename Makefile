@@ -8,6 +8,7 @@ build:
 	go build -o bin/egressclient ./cmd/egressclient/main.go
 	go build -o bin/testclient ./cmd/testclient/main.go
 	go build -o bin/preflightclient ./cmd/preflightclient/main.go
+	go build -o bin/operator ./cmd/operator/main.go
 
 docker:
 	docker build -t local/$(APP_NAME):$(VERSION) .

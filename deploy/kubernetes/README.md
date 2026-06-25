@@ -47,6 +47,18 @@ docker build -t ghcr.io/filthymudblood/aegis-fabric-sidecar:latest .
 
 `deploy/kubernetes/helm/` contains `Chart.yaml` and `values.yaml` as the starting point for a chart that templates `agent-pod-template.yaml`.
 
+## Central policy controller (PR-5)
+
+```bash
+kubectl apply -f deploy/kubernetes/crd/afpclusterpolicy.yaml
+kubectl apply -f deploy/kubernetes/examples/afpclusterpolicy-enterprise.yaml
+go run ./cmd/operator
+```
+
+The operator watches cluster-scoped `AFPClusterPolicy` resources and reconciles `afp-sidecar-config` / `afp-agent-config` ConfigMaps in each `spec.targetNamespaces` entry.
+
+Sidecars hot-reload policy thresholds from the mounted ConfigMap directory `/etc/afp/policy` via `fsnotify` (no full Pod restart required for entropy/recursion changes).
+
 ## Notes
 
 - Pod network namespace is shared: agent outbound traffic should target `127.0.0.1:8081` (sidecar egress).

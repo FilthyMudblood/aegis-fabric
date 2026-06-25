@@ -11,6 +11,9 @@ import (
 const localAgentPeerID = "local-agent"
 
 func (sea *SingleExecutionAuthority) entropyCircuitBreakerThreshold() float32 {
+	if sea.runtime != nil {
+		return sea.runtime.EntropyLimit()
+	}
 	limit := sea.cfg.Core.EntropyLimit
 	if limit <= 0 {
 		limit = 0.95
@@ -28,11 +31,11 @@ func (sea *SingleExecutionAuthority) EvaluatePreFlight(traceID, targetDID string
 	_ = traceID
 	_ = targetDID
 
-	if sea.entropy.ReportedRecursionDepth() > 10 {
+	if sea.entropy.ReportedRecursionDepth() > sea.runtime.MaxRecursionDepth() {
 		telemetry.PreFlightActionTotal.WithLabelValues("isolated").Inc()
 		return &afpsdk.PreFlightResponse{
 			Action:      afpsdk.PreFlightResponse_ISOLATED,
-			BlockReason: "afp-core: recursion depth exceeded physical limit (10), intent loop detected",
+			BlockReason: "afp-core: recursion depth exceeded physical limit, intent loop detected",
 		}
 	}
 

@@ -29,6 +29,7 @@ data:
   AFP_EGRESS_ADDR: "127.0.0.1:8081"
   AFP_METRICS_ADDR: "0.0.0.0:9090"
   AFP_LOCAL_DID: "did:afp:agent:enterprise-alpha"
+  AFP_MAX_RECURSION_DEPTH: "10"
 
 ---
 apiVersion: v1

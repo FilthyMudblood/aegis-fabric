@@ -87,6 +87,16 @@ func main() {
 	entropyMonitor := core.NewEntropyMonitor(&runtimeCfg.Core, &core.CgroupsMetricsProvider{})
 	sea := dataplane.NewSingleExecutionAuthority(runtimeCfg, entropyMonitor, epochClock, gossip)
 
+	policyDir := os.Getenv("AFP_POLICY_DIR")
+	if policyDir == "" {
+		policyDir = "/etc/afp/policy"
+	}
+	if err := sea.RuntimePolicy().WatchPolicyDir(policyDir); err != nil {
+		slog.Warn("policy hot-reload watcher disabled", "dir", policyDir, "error", err)
+	} else {
+		slog.Info("policy hot-reload watcher enabled", "dir", policyDir)
+	}
+
 	ipcSocket := os.Getenv("AFP_IPC_SOCKET")
 	if ipcSocket == "" {
 		ipcSocket = "/var/run/afp/agent.sock"

@@ -1,0 +1,33 @@
+syntax = "proto3";
+
+package afp.v1.policy;
+
+option go_package = "github.com/FilthyMudblood/aegis-fabric/pkg/protocol/v1/policy;afppolicy";
+
+// ClusterPolicySpec is the declarative contract for enterprise-wide AFP governance.
+// It is the schema source for the AFPClusterPolicy CRD and future gRPC policy streams.
+message ClusterPolicySpec {
+  // Namespaces that receive this policy. Empty means afp-system only.
+  repeated string target_namespaces = 1;
+
+  double entropy_limit = 2;
+  uint32 max_recursion_depth = 3;
+  string run_mode = 4;
+  string fail_mode = 5;
+  uint64 max_context_bytes = 6;
+}
+
+message ClusterPolicyStatus {
+  string observed_generation = 1;
+  string phase = 2;
+  string message = 3;
+  repeated string reconciled_namespaces = 4;
+}
+
+message ClusterPolicy {
+  string api_version = 1;
+  string kind = 2;
+  string name = 3;
+  ClusterPolicySpec spec = 4;
+  ClusterPolicyStatus status = 5;
+}

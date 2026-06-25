@@ -34,7 +34,7 @@ func TestHandleIngress_RecursionBreaker(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected recursion breaker error, got nil")
 	}
-	if got := err.Error(); got != "afp-core: recursion depth exceeded physical limit (10), network loop detected" {
+	if got := err.Error(); got != "afp-core: recursion depth exceeded physical limit, network loop detected" {
 		t.Fatalf("unexpected error: %v", got)
 	}
 }
