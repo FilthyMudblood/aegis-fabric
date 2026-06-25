@@ -1,4 +1,4 @@
-.PHONY: build docker run clean test demo-up demo-down demo-logs demo-snapshots demo-report
+.PHONY: build docker run clean test demo-up demo-down demo-logs demo-snapshots demo-report sdk-proto sdk-test
 
 APP_NAME = afp-sidecar
 VERSION = latest
@@ -35,3 +35,9 @@ demo-snapshots:
 
 demo-report:
 	DEMO_AUTO_UP=1 WAIT_TIMEOUT_SECONDS=180 ./scripts/generate_demo_report.sh
+
+sdk-proto:
+	./sdk/python/scripts/gen_proto.sh
+
+sdk-test: sdk-proto
+	cd sdk/python && PYTHONPATH=. pytest tests -v
