@@ -167,7 +167,7 @@ go run ./cmd/simulator
 | **Phase 1** | 数据面 · SDK · LangGraph · K8s 伴生 · CRD Operator · demo-agent |
 | **Phase 2** | 策略推流 · Operator 桥接 · TokenReview · revision 续传 · **mTLS** · **状态回写** · **删除传播** · GHCR CI |
 
-**代码冻结于 PR-6c。** 下一里程碑：白皮书 v2.0。
+**代码冻结于 PR-6c。** 生产加固：[`ROADMAP.md`](ROADMAP.md) · 下一里程碑：[白皮书 v2.0](docs/whitepaper-v2/README.md)
 
 ---
 

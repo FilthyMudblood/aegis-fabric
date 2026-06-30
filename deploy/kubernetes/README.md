@@ -153,6 +153,5 @@ kubectl -n afp-system exec "$POD" -c afp-sidecar -- \
 ## Notes
 
 - Pod containers share a network namespace; agent egress targets `127.0.0.1:8081`.
-- ConfigMap hot-reload avoids pod restarts for threshold tuning; expect ~60s kubelet sync latency.
-- Sub-second Kill Switch is planned via Phase 2 gRPC `StreamPolicyUpdates`.
-- iptables/eBPF automation is not yet in the sidecar binary; `NET_ADMIN` is reserved.
+- **Dual-source policy:** ConfigMap/fsnotify (~60s) is the fail-safe baseline; gRPC `StreamPolicyUpdates` + `policyctl --kill-switch` provide sub-second overlay (see [ROADMAP.md](../../ROADMAP.md) for production hardening).
+- iptables/eBPF socket hijack is not automated yet; `NET_ADMIN` is reserved for Phase 3.

@@ -300,7 +300,7 @@ Key series: `afp_preflight_actions_total`, `afp_ingress_actions_total`
 | **Phase 1** | Sidecar data plane · SDK IPC · LangGraph adapter · K8s co-deploy · CRD Operator · ConfigMap hot-reload · demo-agent |
 | **Phase 2** | `StreamPolicyUpdates` · Operator→Controller bridge · SA TokenReview · revision replay · **mTLS** · **status writeback** · **delete propagation** · GHCR CI |
 
-**Frozen after PR-6c.** Next milestone: [Whitepaper v2.0](https://zenodo.org/records/20674352).
+**Frozen after PR-6c.** Production hardening: [`ROADMAP.md`](ROADMAP.md) · Next milestone: [Whitepaper v2.0](docs/whitepaper-v2/README.md)
 
 ---
 
