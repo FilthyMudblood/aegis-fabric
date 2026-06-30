@@ -1,237 +1,255 @@
-# AFP Sidecar（中文说明）
+# Aegis Fabric Protocol (AFP)
 
 **面向自主 Agent 网络的运行时协调层。**
-
-`AFP Sidecar` 是本仓库的可运行实现：在请求进入本地执行环境前，执行物理层控制（熵压、信誉、递归安全）与策略裁决。
 
 > **"TCP governs packets. AFP governs optimizers."**
 > *(TCP 治理数据包，AFP 治理优化器)*
 
-传统互联网基础设施（如 TCP 与 Istio）的设计前提是：网络参与者是外部指令的被动执行者。然而在自主 AI Agent 时代，节点已成为**主动优化器**——它们制定计划、调整策略，并递归地委派任务以实现本地目标。
+传统互联网基础设施（TCP、Istio、API Gateway）假设节点是**被动执行者**。自主 AI Agent 是**主动优化器**——它们制定计划、递归委派、并将成本外部化。若缺乏控制论约束，必然导致**重试级联、上下文爆炸、递归委派风暴与协作坍塌。**
 
-随着网络演变为意图驱动环境，传统的限流器与服务网格已力不从心。若缺乏控制论层面的约束，不受限制的 Agent 优化必然导致**重试级联、资源滥用、递归委派风暴，以及全局协作崩溃。**
+**Aegis Fabric Protocol（AFP）** 引入*后果持久层（CPL）*：在意图变成不可逆的网络 I/O **之前**，由带外 Sidecar 执行物理约束与自适应摩擦。
 
-**Aegis Fabric Protocol（AFP）** 引入了*后果持久层（Consequence Persistence Layer, CPL）*。通过将物理约束与自适应摩擦直接嵌入带外（out-of-band）Sidecar，AFP 使网络稳定性源于去中心化的后果执行，而非中心化管控。
-
-### 实证铁证 — 蒙特卡洛压测
-
-我们在高频互动的智能体网格中，对 AFP 控制论机制实施了严格的蒙特卡洛仿真：**1,000 次大数定律聚合** · **500 个自主节点** · **5% 恶意/失控节点**（持续输出递归委托爆炸与高负载外部性）· **100 个物理纪元（Epoch）**。
-
-| 网络 | 100 Epoch 后结果 |
-|------|----------------|
-| **传统 Baseline**（无 CPL） | 存活节点从 **500 塌缩至 2.05**（约 **0.4%**）。恶意负载榨干共享算力与上下文内存，健康节点卷入 OOM 无限重试潮 — **全面协同坍塌（Coordination Collapse）**。 |
-| **AFP 网络** | 健康节点 **500.00** 全部存活（**100% 拓扑存活率**）。预防性熔断与非对称滞后惩罚迅速隔离异常熵压，恶意节点被封入断连子图 — 且不牺牲健康网络吞吐。 |
-
-本地复现：`go run ./cmd/simulator` · 完整流程见下方 [实证验证](#实证验证empirical-proof)。
+英文文档：`README.md` · **白皮书：** [AFP 技术白皮书](https://zenodo.org/records/20674352)
 
 ---
 
-英文文档：`README.md`
+## 架构心智模型
 
-**白皮书：** [AFP 技术白皮书](https://zenodo.org/records/20674352)
+AFP 是三层网格联邦：**应用意图层 → 本地数据面 → 声明式控制面**。
 
-## 当前状态
+```mermaid
+flowchart TB
+  subgraph L1["Layer 1 · 应用层 (Python)"]
+    LG["LangGraph Planner"]
+    CR["CrewAI / Tools"]
+    SDK["afp_sdk · @afp_governed_node"]
+    LG --> SDK
+    CR --> SDK
+  end
 
-### 已实现（可运行、可验证）
-- TCP 数据面（LV 帧，支持粘包/半包处理）
-- ACC + FSM 治理内核
-- 运行模式特征开关（`enterprise-mesh` / `open-exchange`）
-- 递归拓扑寻址 + 递归断路器
-- HTTP 中间件包装层（L7 兼容验证）
-- Prometheus 指标 + Grafana 看板
-- Docker / Compose / K8s Sidecar 示例
+  subgraph L2["Layer 2 · IPC 与数据面 (Go Sidecar)"]
+    UDS["UDS /var/run/afp/agent.sock"]
+    PF["PreFlightCheck · ACC + FSM"]
+    EM["EntropyMonitor · 爆发/上下文/内存"]
+    IN["Ingress / Egress"]
+    SDK -->|"gRPC 微秒级"| UDS --> PF --> EM
+    PF --> IN
+  end
 
-### 尚需继续硬化（当前为原型/简化）
-- 密码学签名校验仍是简化实现
-- cgroups 内存读取当前采用 runtime fallback（未完整接 `/sys/fs/cgroup`）
-- 拓扑 referral / gossip 传输为测试桩形态
+  subgraph L3["Layer 3 · 控制面 (Kubernetes)"]
+    CRD["AFPClusterPolicy CRD"]
+    OP["Policy Operator"]
+    CM["ConfigMap"]
+    HR["fsnotify 热加载 /etc/afp/policy"]
+    CRD --> OP --> CM --> HR --> EM
+  end
 
-## 实证验证（Empirical Proof）
+  L1 -.->|"fail-closed 或 annotate"| L2
+  L3 -.->|"kubelet 约 60s 同步"| L2
+```
 
-AFP 不仅在[白皮书](https://zenodo.org/records/20674352)中有理论阐述——本仓库还提供**可复现的测试 Demo**，端到端验证 CPL 机制，并导出机器可读证据。
+| 层级 | 职责 | 核心组件 |
+|------|------|---------|
+| **L1 应用层** | 在 Tool 风暴与规划死循环**之前**治理意图 | `sdk/python/afp_sdk`、`@afp_governed_node` |
+| **L2 数据面** | 微秒级 Pre-Flight + Socket 级拦截 | `cmd/sidecar`、UDS IPC、ACC/FSM |
+| **L3 控制面** | 声明式策略法律 + 阈值热更新 | `AFPClusterPolicy`、`cmd/operator` |
 
-### Demo 验证了什么
+**设计法则：** *CRD 是治理的法律；IPC 是本地执行机构；Phase 2 的 gRPC 策略流是运行时指令（亚秒级 Kill Switch）。*
 
-| 层级 | 被测机制 | 运行方式 | 预期信号 |
-|------|---------|---------|---------|
-| **L7 黑盒** | 快路径准入、递归断路、陌生人税 | `docker compose up -d --build` 后执行 `./scripts/verify_http_gateway.sh` | 正常流量 `200` · 深度 > 10 返回 `508` · 不可信陌生人 `403` |
-| **治理内核** | 运行模式开关 + Ingress FSM | `./scripts/verify_modes.sh` · `./scripts/verify_recursion_loop.sh` | 企业网格绕过陌生人税；开放交换拦截陌生人；递归深度触发断路 |
-| **Monte Carlo** | 恶意负载下 Baseline vs AFP | `go run ./cmd/simulator` | 1,000 次推演 × 500 节点（5% 恶意），AFP 维持更高存活节点数与更低平均负载 |
-| **遥测证据包** | Prometheus 指标 + Grafana 面板 | `make demo-report` | 导出 `artifacts/report/`：PromQL JSON、面板截图、HTML 报告 |
+---
 
-### 一键复现
+## 10 分钟快速起步
+
+### 前置条件
+
+- Go 1.23+、Docker、Python 3.10+（SDK 演示）
+- 可选：[kind](https://kind.sigs.k8s.io/) 体验完整 K8s 路径
+
+### 路径 A — 本地沙箱（最快）
+
+无需 Kubernetes，验证递归断路器与意图爆发拦截：
 
 ```bash
-# 1) 启动双模式 HTTP Gateway 节点
-docker compose up -d --build
+# 终端 1 — 启动 Sidecar（SDK IPC）
+AFP_IPC_SOCKET=/tmp/afp/agent.sock go run ./cmd/sidecar
 
-# 2) 黑盒集成验证（200 / 508 / 403）
-./scripts/verify_http_gateway.sh
+# 终端 2 — 递归深度超限（期望 ISOLATED，exit 2）
+AFP_IPC_SOCKET=/tmp/afp/agent.sock go run ./cmd/preflightclient \
+  --recursion-depth 12
 
-# 3) 治理内核行为验证
-./scripts/verify_modes.sh
-./scripts/verify_recursion_loop.sh
+# 终端 3 — 意图爆发（期望 ISOLATED，exit 2）
+AFP_IPC_SOCKET=/tmp/afp/agent.sock go run ./cmd/preflightclient \
+  --estimated-tasks 10000
 
-# 4) Baseline vs AFP 韧性对比（Monte Carlo）
+# 终端 4 — LangGraph 优雅降级（annotate 模式）
+cd sdk/python && pip install grpcio protobuf langgraph -q
+PYTHONPATH=. python examples/langgraph_planner.py
+# 期望输出：annotated-stop: ... recursion depth ...
+```
+
+### 路径 B — kind 集群（完整网格）
+
+一键脚本：构建镜像、加载到 kind、apply 清单、在 Pod 内演示：
+
+```bash
+./scripts/kind-quickstart.sh
+```
+
+手动步骤见英文 [README.md](README.md#path-b--kind-cluster-full-mesh)。
+
+部署细节：[deploy/kubernetes/README.md](deploy/kubernetes/README.md)
+
+---
+
+## 企业运维与合规指南
+
+### `AFP_SDK_FAIL_MODE` — open vs closed
+
+| 模式 | Sidecar IPC 不可达时 | 典型场景 |
+|------|---------------------|---------|
+| **`open`**（开发默认） | 警告后**放行意图**，网络层可能兜底 | 本地开发、灰度、非关键沙箱 |
+| **`closed`**（企业默认） | 抛出 `AFPInfrastructureError`，**停止意图生成** | 金融、医疗、生产多 Agent 网格 |
+
+K8s 中通过 `afp-agent-config` 默认为 **`closed`**。UDS 丢失时，绝不允许 Planner 静默生成上万内部 Task。
+
+### 调优 `entropyLimit`（物理红线）
+
+`entropyLimit`（环境变量 `AFP_ENTROPY_LIMIT`，默认 **0.95**）是**预防性熔断**阈值。有效熵压取以下维度的 `max()`：
+
+- 工具并发压力
+- 内存 / cgroup 压力
+- SDK 上报的 `context_memory_bytes`
+- Planner 的 `estimated_tasks` 爆发因子
+
+| 配置档 | `entropyLimit` | 适用场景 |
+|--------|----------------|---------|
+| 探索型 | 0.98 | 研发集群，容忍偶发阻尼 |
+| 企业默认 | 0.95 | 安全与吞吐平衡 |
+| 高保证 | 0.85–0.90 | 强隔离、严格 SLO |
+
+集群级下发：
+
+```yaml
+apiVersion: afp.aegis-fabric.io/v1alpha1
+kind: AFPClusterPolicy
+metadata:
+  name: enterprise-default
+spec:
+  targetNamespaces: [afp-system]
+  entropyLimit: 0.95
+  maxRecursionDepth: 10
+  runMode: enterprise-mesh
+  failMode: closed
+```
+
+Operator 同步 ConfigMap → `/etc/afp/policy` 文件 → Sidecar `fsnotify` 热加载（**无需重启 Pod**）。kubelet 传播约 **60 秒**；亚秒级 Kill Switch 留给 Phase 2 gRPC `StreamPolicyUpdates`。
+
+### LangGraph 优雅降级
+
+`on_quota_exceeded="annotate"` 将 `afp_blocked` 写入状态，由图路由处理人工介入，而非崩溃整条流水线：
+
+```python
+@afp_governed_node(on_quota_exceeded="annotate", estimated_tasks=10)
+def planner_node(state):
+    ...
+```
+
+---
+
+## 实证铁证 — Monte Carlo
+
+**1,000 次聚合 × 500 节点 × 5% 恶意 × 100 Epoch**
+
+| 网络 | 结果 |
+|------|------|
+| **Baseline** | 存活 **500 → 2.05**（约 0.4%）— 协同坍塌 |
+| **AFP** | **500.00** 存活（**100%** 拓扑存活率） |
+
+```bash
 go run ./cmd/simulator
-
-# 5) 生成可观测性证据包（Grafana + Prometheus）
 make demo-report
 ```
 
-### 已提交的证据产物
+---
 
-`artifacts/` 目录包含一次 Demo 运行的快照：
+## Python SDK
 
-- `artifacts/report/report.html` — 可读性摘要
-- `artifacts/report/prometheus/*.json` — PromQL 原始查询结果（入口拒绝率、快路径吞吐、CVP 惩罚、注入延迟 p95）
-- `artifacts/screenshots/*.png` — Grafana 面板导出（下次 `make demo-report` 时生成）
+```bash
+cd sdk/python && ./scripts/gen_proto.sh
+make sdk-test
+```
 
-捕获的核心遥测维度：**入口拒绝率**、**快路径吞吐**、**CVP 惩罚事件**、**自适应摩擦（注入延迟 p95）**——即去中心化后果执行的可观测签名。
+详见 [sdk/python/README.md](sdk/python/README.md)
 
-## 技术栈
+---
 
-- Go（`go 1.23+`）
-- Protobuf（`proto3`，`buf` + `protoc-gen-go`）
-- TCP + HTTP 双路径兼容
-- Prometheus + Grafana
-- Docker / Docker Compose / Kubernetes
+## Kubernetes 部署
+
+| 资源 | 路径 |
+|------|------|
+| Pod 模板 | `deploy/kubernetes/agent-pod-template.yaml` |
+| CRD | `deploy/kubernetes/crd/afpclusterpolicy.yaml` |
+| Operator | `deploy/kubernetes/operator-deployment.yaml` |
+
+```bash
+make build
+./scripts/kind-quickstart.sh
+```
+
+---
+
+## Demo Agent 镜像（路线图）
+
+**建议：应当提供 `afp-demo-agent:latest` 预构建镜像。**
+
+当前 LangGraph 死循环演示在 `sdk/python/examples/langgraph_planner.py`，需要本地 Python 环境。对于会议演示与 SRE onboarding，**开箱即用的 Demo Agent 镜像**能显著降低体验门槛：
+
+- `kubectl apply` 即可观察 `afp_blocked`，无需 `pip install`
+- CI 可回归测试完整 Pod + UDS + SDK 链路
+- Sidecar 镜像已内置 `preflightclient` 做底层证明；demo-agent 覆盖**应用层叙事**
+
+计划发布 `ghcr.io/filthymudblood/afp-demo-agent:latest`。**当前**请使用 `./scripts/kind-quickstart.sh`（Pod 内 `preflightclient`）或本地 Python 示例。
+
+---
 
 ## 项目结构
 
 ```text
-afp-sidecar/
-├─ cmd/
-│  ├─ sidecar/         # 主服务入口（ingress + egress + metrics）
-│  ├─ http_gateway/    # HTTP 中间件包装层（L7 兼容）
-│  ├─ egressclient/    # 本地 egress 协议测试桩
-│  ├─ modetester/      # 模式开关验证流量注入
-│  ├─ looptester/      # 递归深度断路验证
-│  ├─ node_z/          # 远端节点测试桩
-│  ├─ testclient/      # TCP 帧行为验证
-│  ├─ loadgen/         # 压测流量生成
-│  └─ simulator/       # Monte Carlo 推演
-├─ internal/
-│  ├─ config/          # 运行模式与引导配置
-│  ├─ control/         # FSM + ACC 公式内核
-│  ├─ core/            # 熵压监控与 OS 指标接口
-│  ├─ dataplane/       # codec / ingress / egress
-│  ├─ topology/        # DID 解析与 gossip 原型
-│  └─ telemetry/       # Prometheus 指标定义
-├─ api/afp/v1/         # protobuf 源定义
-├─ pkg/protocol/v1/    # protobuf 生成代码
-├─ deploy/             # k8s + monitor 配置
-├─ scripts/            # 自动化验证脚本
-└─ artifacts/          # 报告与截图产物
+aegis-fabric/
+├─ api/afp/v1/           # protobuf 契约
+├─ cmd/sidecar, operator, preflightclient
+├─ internal/controller/    # K8s Operator
+├─ sdk/python/afp_sdk/   # Python SDK + LangGraph 适配器
+├─ deploy/kubernetes/    # 生产 IaC
+└─ scripts/kind-quickstart.sh
 ```
+
+---
 
 ## 运行模式
 
-通过环境变量 `AFP_RUN_MODE` 控制：
-- `enterprise-mesh`：仅启用 AFP-Core（内网拥塞/熵压/递归安全）
-- `open-exchange`：启用 AFP-Core + 零信任网络策略（陌生人税等）
+| `AFP_RUN_MODE` | 行为 |
+|----------------|------|
+| `enterprise-mesh` | AFP-Core：拥塞、递归、熵压（默认） |
+| `open-exchange` | Core + 零信任陌生人税 |
 
-默认模式：`enterprise-mesh`。
-
-## 快速启动
-
-启动 Sidecar：
-
-```bash
-go run ./cmd/sidecar
-```
-
-启动 HTTP Gateway（L7 包装层）：
-
-```bash
-go run ./cmd/http_gateway
-```
-
-运行递归寻址客户端：
-
-```bash
-go run ./cmd/egressclient
-```
-
-## 黑盒双模演示（Docker Compose）
-
-> 完整复现流程见上方 [实证验证](#实证验证empirical-proof)。
-
-```bash
-docker compose up -d --build
-```
-
-会启动两个节点：
-- `afp-mesh-node` · `localhost:8082`（`enterprise-mesh`）
-- `afp-open-node` · `localhost:8083`（`open-exchange`）
-
-预期行为：
-- `8082` 正常请求返回 `200`
-- `8082` 递归深度超限返回 `508`
-- `8083` 陌生人低信誉请求返回 `403`
-
-## 自动化验证脚本
-
-> 一键运行全部验证见上方 [实证验证](#实证验证empirical-proof) 中的命令。
-
-- 模式开关验证：`./scripts/verify_modes.sh`
-- 递归断路验证：`./scripts/verify_recursion_loop.sh`
-- HTTP 黑盒集成验证（针对已运行容器）：`./scripts/verify_http_gateway.sh`
-- Protobuf 生成：`./scripts/gen_proto.sh`
-
-## Monte Carlo 推演
-
-> Baseline vs AFP 对比方法见上方 [实证验证](#实证验证empirical-proof)。
-
-本地运行：
-
-```bash
-go run ./cmd/simulator
-```
-
-容器内运行（非交互）：
-
-```bash
-docker exec afp-mesh-node simulator -runs 1000
-```
+---
 
 ## 可观测性
 
-指标端点：
-- `http://127.0.0.1:9090/metrics`（本地 sidecar 直跑时）
+- 指标：`http://<pod>:9090/metrics`
+- 关键序列：`afp_preflight_actions_total`、`afp_ingress_actions_total`
 
-监控栈配置：
-- `deploy/monitor/prometheus.yml`
-- `deploy/monitor/docker-compose.yml`
-- `deploy/monitor/grafana-dashboard-afp.json`
+---
 
-启动：
+## 实现状态
 
-```bash
-cd deploy/monitor
-docker-compose up -d
-```
+**已交付：** 数据面 · SDK IPC · LangGraph 适配器 · K8s Sidecar 伴生部署 · CRD Operator · ConfigMap 热加载
 
-Grafana：
-- `http://127.0.0.1:3000`
-- 默认账号密码：`admin / admin`
+**硬化中：** cgroup 完整读取 · 生产级签名校验 · iptables/eBPF · gRPC 策略推流（Phase 2）
 
-## Demo 与证据导出
-
-> 证据包结构与遥测维度见上方 [实证验证](#实证验证empirical-proof)。
-
-```bash
-make demo-snapshots
-make demo-report
-```
-
-输出目录：
-- `artifacts/report/README.md`
-- `artifacts/report/report.html`
-- `artifacts/report/prometheus/*.json`
-- `artifacts/screenshots/*.png`
+---
 
 ## 许可证
 
-本项目采用 Apache License 2.0。
-详见 `LICENSE`。
+Apache License 2.0 — 详见 [LICENSE](LICENSE)。

@@ -1,4 +1,4 @@
-.PHONY: build docker run clean test demo-up demo-down demo-logs demo-snapshots demo-report sdk-proto sdk-test
+.PHONY: build docker run clean test demo-up demo-down demo-logs demo-snapshots demo-report sdk-proto sdk-test kind-quickstart
 
 APP_NAME = afp-sidecar
 VERSION = latest
@@ -42,3 +42,6 @@ sdk-proto:
 
 sdk-test: sdk-proto
 	cd sdk/python && PYTHONPATH=. pytest tests -v
+
+kind-quickstart:
+	./scripts/kind-quickstart.sh

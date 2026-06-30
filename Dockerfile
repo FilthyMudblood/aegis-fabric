@@ -21,6 +21,7 @@ ENV CGO_ENABLED=0 GOOS=linux GOARCH=amd64
 RUN go build -ldflags="-w -s" -o /bin/sidecar ./cmd/sidecar
 RUN go build -ldflags="-w -s" -o /bin/http_gateway ./cmd/http_gateway
 RUN go build -ldflags="-w -s" -o /bin/simulator ./cmd/simulator
+RUN go build -ldflags="-w -s" -o /bin/preflightclient ./cmd/preflightclient
 
 # ==========================================
 # Stage 2: Create the minimal production image
@@ -36,6 +37,7 @@ WORKDIR /app
 COPY --from=builder /bin/sidecar /usr/local/bin/sidecar
 COPY --from=builder /bin/http_gateway /usr/local/bin/http_gateway
 COPY --from=builder /bin/simulator /usr/local/bin/simulator
+COPY --from=builder /bin/preflightclient /usr/local/bin/preflightclient
 
 # 声明 HTTP 网关的默认端口
 EXPOSE 8082
