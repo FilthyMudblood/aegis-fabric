@@ -233,7 +233,8 @@ Docs: [sdk/python/README.md](sdk/python/README.md)
 
 | Resource | Path |
 |----------|------|
-| Pod / Deployment template | `deploy/kubernetes/agent-pod-template.yaml` |
+| Pod template (generic) | `deploy/kubernetes/agent-pod-template.yaml` |
+| **Demo deployment** | `deploy/kubernetes/agent-pod-demo.yaml` |
 | ConfigMaps | `deploy/kubernetes/configmap-afp.yaml` |
 | CRD | `deploy/kubernetes/crd/afpclusterpolicy.yaml` |
 | Operator + RBAC | `deploy/kubernetes/operator-deployment.yaml` |
@@ -245,17 +246,36 @@ make build    # includes sidecar + operator + preflightclient
 
 ---
 
-## Demo Agent Image (roadmap)
+## Demo Agent Image
 
-**Recommendation: yes — ship `afp-demo-agent:latest`.**
+Pre-baked LangGraph planner for zero-setup Kubernetes demos — no local Python required.
 
-Today, the LangGraph dead-loop demo lives in `sdk/python/examples/langgraph_planner.py` and requires a local Python environment. For conference rooms and SRE onboarding, a **pre-baked demo agent image** dramatically lowers friction:
+```bash
+make demo-agent-docker
+# or full kind path (builds sidecar + demo agent):
+make kind-quickstart
+```
 
-- `kubectl apply` and immediately watch `afp_blocked` without `pip install`
-- CI can regression-test the full Pod + UDS + SDK path
-- Sidecar image already ships `preflightclient` for low-level proofs; demo-agent covers **application-layer** narrative
+| Image | Purpose |
+|-------|---------|
+| `ghcr.io/filthymudblood/aegis-fabric-sidecar:latest` | L2 data plane + `preflightclient` |
+| `ghcr.io/filthymudblood/afp-demo-agent:latest` | L1 LangGraph `@afp_governed_node` loop |
 
-Planned: `Dockerfile.demo-agent` → `ghcr.io/filthymudblood/afp-demo-agent:latest` running the LangGraph planner loop on an interval. **Until then**, use `preflightclient` in-cluster (`./scripts/kind-quickstart.sh`) or the local Python example.
+Build from `Dockerfile.demo-agent`; deploy with `deploy/kubernetes/agent-pod-demo.yaml`.
+
+Watch application-layer interception:
+
+```bash
+kubectl -n afp-system logs -f deploy/afp-agent-node -c agent-core
+# expect: annotated-stop: ... recursion depth exceeded ...
+```
+
+Local one-shot (sidecar required):
+
+```bash
+cd sdk/python && PYTHONPATH=. python examples/langgraph_planner.py
+cd sdk/python && PYTHONPATH=. python examples/langgraph_planner.py --loop --interval 10
+```
 
 ---
 
@@ -277,6 +297,7 @@ aegis-fabric/
 │  └─ config/            # runtime policy hot-reload
 ├─ sdk/python/afp_sdk/   # Python SDK + LangGraph adapters
 ├─ deploy/kubernetes/    # production IaC
+├─ Dockerfile.demo-agent # LangGraph demo agent image
 ├─ scripts/              # verification + kind-quickstart.sh
 └─ artifacts/            # demo reports
 ```

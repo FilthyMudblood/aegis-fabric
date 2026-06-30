@@ -1,0 +1,24 @@
+# Pre-baked LangGraph demo agent for zero-setup Kubernetes onboarding.
+# Build: docker build -f Dockerfile.demo-agent -t ghcr.io/filthymudblood/afp-demo-agent:latest .
+FROM python:3.12-slim
+
+WORKDIR /app
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY sdk/python/pyproject.toml sdk/python/setup.py sdk/python/README.md ./
+COPY sdk/python/afp_sdk ./afp_sdk
+COPY sdk/python/examples ./examples
+COPY sdk/python/scripts/demo-agent-entrypoint.sh /usr/local/bin/demo-agent-entrypoint.sh
+
+RUN pip install --no-cache-dir ".[langgraph]" \
+    && chmod +x /usr/local/bin/demo-agent-entrypoint.sh
+
+ENV PYTHONUNBUFFERED=1 \
+    AFP_IPC_SOCKET=/var/run/afp/agent.sock \
+    AFP_SDK_FAIL_MODE=closed
+
+ENTRYPOINT ["/usr/local/bin/demo-agent-entrypoint.sh"]
+CMD ["--loop", "--interval", "30"]

@@ -3,7 +3,8 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 CLUSTER_NAME="${KIND_CLUSTER_NAME:-afp}"
-IMAGE="ghcr.io/filthymudblood/aegis-fabric-sidecar:latest"
+SIDECAR_IMAGE="ghcr.io/filthymudblood/aegis-fabric-sidecar:latest"
+DEMO_AGENT_IMAGE="ghcr.io/filthymudblood/afp-demo-agent:latest"
 NAMESPACE="afp-system"
 
 require() {
@@ -23,32 +24,41 @@ if ! kind get clusters | grep -qx "${CLUSTER_NAME}"; then
 fi
 
 echo "Building sidecar image..."
-docker build -t "${IMAGE}" "${ROOT}"
+docker build -t "${SIDECAR_IMAGE}" "${ROOT}"
 
-echo "Loading image into kind..."
-kind load docker-image "${IMAGE}" --name "${CLUSTER_NAME}"
+echo "Building demo agent image..."
+docker build -f "${ROOT}/Dockerfile.demo-agent" -t "${DEMO_AGENT_IMAGE}" "${ROOT}"
+
+echo "Loading images into kind..."
+kind load docker-image "${SIDECAR_IMAGE}" --name "${CLUSTER_NAME}"
+kind load docker-image "${DEMO_AGENT_IMAGE}" --name "${CLUSTER_NAME}"
 
 echo "Applying AFP Kubernetes manifests..."
 kubectl apply -f "${ROOT}/deploy/kubernetes/namespace.yaml"
 kubectl apply -f "${ROOT}/deploy/kubernetes/configmap-afp.yaml"
 kubectl apply -f "${ROOT}/deploy/kubernetes/crd/afpclusterpolicy.yaml"
 kubectl apply -f "${ROOT}/deploy/kubernetes/examples/afpclusterpolicy-enterprise.yaml"
-kubectl apply -f "${ROOT}/deploy/kubernetes/agent-pod-template.yaml"
+kubectl apply -f "${ROOT}/deploy/kubernetes/agent-pod-demo.yaml"
 
 echo "Waiting for agent pod..."
-kubectl -n "${NAMESPACE}" wait --for=condition=Ready pod -l app.kubernetes.io/component=agent-node --timeout=120s
+kubectl -n "${NAMESPACE}" wait --for=condition=Ready pod -l app.kubernetes.io/component=agent-node --timeout=180s
 
 POD="$(kubectl -n "${NAMESPACE}" get pod -l app.kubernetes.io/component=agent-node -o jsonpath='{.items[0].metadata.name}')"
 
 echo ""
-echo "==> Recursion breaker demo (expect ISOLATED / exit 2)"
+echo "==> L2 recursion breaker (preflightclient, expect ISOLATED / exit 2)"
 kubectl -n "${NAMESPACE}" exec "${POD}" -c afp-sidecar -- \
   preflightclient --recursion-depth 12 --estimated-tasks 1 || true
 
 echo ""
-echo "==> Intent burst demo (expect ISOLATED / exit 2)"
+echo "==> L2 intent burst (preflightclient, expect ISOLATED / exit 2)"
 kubectl -n "${NAMESPACE}" exec "${POD}" -c afp-sidecar -- \
   preflightclient --recursion-depth 1 --estimated-tasks 10000 || true
+
+echo ""
+echo "==> L1 LangGraph planner (agent-core logs, expect annotated-stop)"
+sleep 5
+kubectl -n "${NAMESPACE}" logs "${POD}" -c agent-core --tail=20 || true
 
 echo ""
 echo "==> Patch cluster policy entropy limit to 0.80"
@@ -58,11 +68,12 @@ cat <<EOF
 
 Quickstart complete.
 
-Next steps:
-  1) Run the policy operator locally: go run ./cmd/operator
-  2) Re-apply the patched AFPClusterPolicy and inspect ConfigMaps:
-       kubectl -n ${NAMESPACE} get configmap afp-sidecar-config -o yaml
-  3) Watch sidecar hot-reload directory inside the pod:
-       kubectl -n ${NAMESPACE} exec ${POD} -c afp-sidecar -- ls -la /etc/afp/policy
+Watch the demo agent loop:
+  kubectl -n ${NAMESPACE} logs -f ${POD} -c agent-core
+
+Re-run policy operator / inspect hot-reload:
+  go run ./cmd/operator
+  kubectl -n ${NAMESPACE} get configmap afp-sidecar-config -o yaml
+  kubectl -n ${NAMESPACE} exec ${POD} -c afp-sidecar -- ls -la /etc/afp/policy
 
 EOF

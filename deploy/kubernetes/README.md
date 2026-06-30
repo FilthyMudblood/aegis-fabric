@@ -88,6 +88,16 @@ kubectl -n afp-system get configmap afp-sidecar-config -o yaml
 kubectl -n afp-system exec deploy/afp-agent-node -c afp-sidecar -- ls -la /etc/afp/policy
 ```
 
+## Demo Agent
+
+```bash
+make demo-agent-docker
+kubectl apply -f deploy/kubernetes/agent-pod-demo.yaml
+kubectl -n afp-system logs -f deploy/afp-agent-node -c agent-core
+```
+
+`Dockerfile.demo-agent` packages `sdk/python/examples/langgraph_planner.py` with `--loop` for periodic recursion-breaker demos over UDS.
+
 ## In-Pod Demos
 
 ```bash

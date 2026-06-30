@@ -1,6 +1,7 @@
-.PHONY: build docker run clean test demo-up demo-down demo-logs demo-snapshots demo-report sdk-proto sdk-test kind-quickstart
+.PHONY: build docker run clean test demo-up demo-down demo-logs demo-snapshots demo-report sdk-proto sdk-test kind-quickstart demo-agent-docker
 
 APP_NAME = afp-sidecar
+DEMO_AGENT_IMAGE = ghcr.io/filthymudblood/afp-demo-agent:latest
 VERSION = latest
 
 build:
@@ -12,6 +13,9 @@ build:
 
 docker:
 	docker build -t local/$(APP_NAME):$(VERSION) .
+
+demo-agent-docker:
+	docker build -f Dockerfile.demo-agent -t $(DEMO_AGENT_IMAGE) .
 
 run: build
 	./bin/$(APP_NAME)

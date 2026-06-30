@@ -187,7 +187,8 @@ make sdk-test
 
 | 资源 | 路径 |
 |------|------|
-| Pod 模板 | `deploy/kubernetes/agent-pod-template.yaml` |
+| Pod 模板（通用） | `deploy/kubernetes/agent-pod-template.yaml` |
+| **Demo 部署** | `deploy/kubernetes/agent-pod-demo.yaml` |
 | CRD | `deploy/kubernetes/crd/afpclusterpolicy.yaml` |
 | Operator | `deploy/kubernetes/operator-deployment.yaml` |
 
@@ -198,17 +199,36 @@ make build
 
 ---
 
-## Demo Agent 镜像（路线图）
+## Demo Agent 镜像
 
-**建议：应当提供 `afp-demo-agent:latest` 预构建镜像。**
+预打包 LangGraph Planner，K8s 内无需本地 Python 即可体验应用层治理。
 
-当前 LangGraph 死循环演示在 `sdk/python/examples/langgraph_planner.py`，需要本地 Python 环境。对于会议演示与 SRE onboarding，**开箱即用的 Demo Agent 镜像**能显著降低体验门槛：
+```bash
+make demo-agent-docker
+# 或完整 kind 路径（同时构建 sidecar + demo agent）：
+make kind-quickstart
+```
 
-- `kubectl apply` 即可观察 `afp_blocked`，无需 `pip install`
-- CI 可回归测试完整 Pod + UDS + SDK 链路
-- Sidecar 镜像已内置 `preflightclient` 做底层证明；demo-agent 覆盖**应用层叙事**
+| 镜像 | 用途 |
+|------|------|
+| `ghcr.io/filthymudblood/aegis-fabric-sidecar:latest` | L2 数据面 + `preflightclient` |
+| `ghcr.io/filthymudblood/afp-demo-agent:latest` | L1 LangGraph `@afp_governed_node` 循环演示 |
 
-计划发布 `ghcr.io/filthymudblood/afp-demo-agent:latest`。**当前**请使用 `./scripts/kind-quickstart.sh`（Pod 内 `preflightclient`）或本地 Python 示例。
+由 `Dockerfile.demo-agent` 构建；用 `deploy/kubernetes/agent-pod-demo.yaml` 部署。
+
+查看应用层拦截日志：
+
+```bash
+kubectl -n afp-system logs -f deploy/afp-agent-node -c agent-core
+# 期望：annotated-stop: ... recursion depth exceeded ...
+```
+
+本地单次运行（需 sidecar）：
+
+```bash
+cd sdk/python && PYTHONPATH=. python examples/langgraph_planner.py
+cd sdk/python && PYTHONPATH=. python examples/langgraph_planner.py --loop --interval 10
+```
 
 ---
 
@@ -221,7 +241,8 @@ aegis-fabric/
 ├─ internal/controller/    # K8s Operator
 ├─ sdk/python/afp_sdk/   # Python SDK + LangGraph 适配器
 ├─ deploy/kubernetes/    # 生产 IaC
-└─ scripts/kind-quickstart.sh
+├─ Dockerfile.demo-agent # LangGraph 演示 Agent 镜像
+├─ scripts/              # 验证脚本 + kind-quickstart.sh
 ```
 
 ---

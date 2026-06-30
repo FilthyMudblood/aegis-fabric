@@ -1,0 +1,111 @@
+# Demo deployment: LangGraph planner agent + AFP sidecar (apply after configmaps).
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: afp-agent-node
+  namespace: afp-system
+  labels:
+    app.kubernetes.io/name: aegis-fabric
+    app.kubernetes.io/component: agent-node
+    afp.aegis-fabric.io/profile: demo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: aegis-fabric
+      app.kubernetes.io/component: agent-node
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: aegis-fabric
+        app.kubernetes.io/component: agent-node
+        afp.mesh/role: enterprise-worker
+        afp.aegis-fabric.io/profile: demo
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9090"
+        prometheus.io/path: "/metrics"
+    spec:
+      volumes:
+        - name: afp-ipc-socket
+          emptyDir: {}
+        - name: afp-bootstrap
+          configMap:
+            name: afp-sidecar-bootstrap
+            items:
+              - key: bootstrap.json
+                path: bootstrap.json
+        - name: afp-policy
+          configMap:
+            name: afp-sidecar-config
+
+      containers:
+        - name: agent-core
+          image: ghcr.io/filthymudblood/afp-demo-agent:latest
+          imagePullPolicy: IfNotPresent
+          envFrom:
+            - configMapRef:
+                name: afp-agent-config
+          volumeMounts:
+            - name: afp-ipc-socket
+              mountPath: /var/run/afp
+          resources:
+            requests:
+              cpu: "250m"
+              memory: "512Mi"
+            limits:
+              cpu: "2"
+              memory: "2Gi"
+
+        - name: afp-sidecar
+          image: ghcr.io/filthymudblood/aegis-fabric-sidecar:latest
+          imagePullPolicy: IfNotPresent
+          command: ["sidecar"]
+          envFrom:
+            - configMapRef:
+                name: afp-sidecar-config
+          env:
+            - name: AFP_BOOTSTRAP_PATH
+              value: /etc/afp/bootstrap.json
+          ports:
+            - name: mesh-ingress
+              containerPort: 8080
+            - name: local-egress
+              containerPort: 8081
+            - name: metrics
+              containerPort: 9090
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              add:
+                - NET_ADMIN
+          volumeMounts:
+            - name: afp-ipc-socket
+              mountPath: /var/run/afp
+            - name: afp-bootstrap
+              mountPath: /etc/afp
+              readOnly: true
+            - name: afp-policy
+              mountPath: /etc/afp/policy
+              readOnly: true
+          readinessProbe:
+            exec:
+              command:
+                - /bin/sh
+                - -c
+                - test -S /var/run/afp/agent.sock
+            initialDelaySeconds: 2
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /metrics
+              port: metrics
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
