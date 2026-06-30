@@ -88,33 +88,69 @@ func (c *PolicyController) consumeWatch(ctx context.Context, watcher watch.Inter
 					}
 				}(obj)
 			case watch.Deleted:
-				slog.Info("cluster policy deleted", "name", obj.GetName())
+				wg.Add(1)
+				policyName := obj.GetName()
+				go func(name string) {
+					defer wg.Done()
+					if err := c.handleDelete(ctx, name); err != nil {
+						slog.Error("policy delete propagation failed", "name", name, "error", err)
+					}
+				}(policyName)
 			}
 		}
 	}
 }
 
 func (c *PolicyController) reconcileObject(ctx context.Context, obj *unstructured.Unstructured) error {
+	name := obj.GetName()
+	generation := obj.GetGeneration()
+
 	policy, err := decodeClusterPolicy(obj)
 	if err != nil {
+		_ = c.writeStatus(ctx, name, generation, StatusPhaseDegraded, err.Error(), nil, 0)
 		return err
 	}
+
 	namespaces, err := c.reconciler.ReconcilePolicy(ctx, policy)
 	if err != nil {
+		_ = c.writeStatus(ctx, name, generation, StatusPhaseDegraded, err.Error(), nil, 0)
 		return err
 	}
+
+	revision, err := c.publisher.PublishPolicy(ctx, name, generation, policy.Spec)
+	if err != nil {
+		msg := fmt.Sprintf("configmaps updated; stream publish failed: %v", err)
+		_ = c.writeStatus(ctx, name, generation, StatusPhaseDegraded, msg, namespaces, 0)
+		return fmt.Errorf("publish policy stream: %w", err)
+	}
+
+	message := fmt.Sprintf("configmaps and stream revision %d applied", revision)
+	if err := c.writeStatus(ctx, name, generation, StatusPhaseApplied, message, namespaces, revision); err != nil {
+		slog.Warn("status writeback failed", "name", name, "error", err)
+	}
+
 	slog.Info(
 		"reconciled AFPClusterPolicy",
-		"name", obj.GetName(),
-		"generation", obj.GetGeneration(),
+		"name", name,
+		"generation", generation,
+		"streamRevision", revision,
 		"namespaces", namespaces,
 		"entropyLimit", policy.Spec.EntropyLimit,
 		"maxRecursionDepth", policy.Spec.MaxRecursionDepth,
 	)
-	if err := c.publisher.PublishPolicy(ctx, obj.GetName(), obj.GetGeneration(), policy.Spec); err != nil {
-		return fmt.Errorf("publish policy stream: %w", err)
+	return nil
+}
+
+func (c *PolicyController) handleDelete(ctx context.Context, policyName string) error {
+	revision, err := c.publisher.PublishClear(ctx, policyName, "AFPClusterPolicy deleted")
+	if err != nil {
+		return err
 	}
-	slog.Info("published AFPClusterPolicy to runtime stream", "name", obj.GetName(), "generation", obj.GetGeneration())
+	slog.Info(
+		"propagated AFPClusterPolicy deletion to runtime stream",
+		"name", policyName,
+		"streamRevision", revision,
+	)
 	return nil
 }
 

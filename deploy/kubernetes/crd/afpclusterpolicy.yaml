@@ -68,6 +68,8 @@ spec:
                   type: array
                   items:
                     type: string
+                streamRevision:
+                  type: string
       subresources:
         status: {}
       additionalPrinterColumns:
@@ -83,3 +85,9 @@ spec:
         - name: FailMode
           type: string
           jsonPath: .spec.failMode
+        - name: Phase
+          type: string
+          jsonPath: .status.phase
+        - name: StreamRev
+          type: string
+          jsonPath: .status.streamRevision

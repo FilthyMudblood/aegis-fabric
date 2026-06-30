@@ -95,9 +95,17 @@ kubectl apply -f deploy/kubernetes/policy-controller-deployment.yaml
 kubectl apply -f deploy/kubernetes/operator-deployment.yaml
 ```
 
-Operator publishes to the controller on every CRD reconcile (`AFP_POLICY_CONTROLLER_ADDR`).
+Operator publishes to the controller on every CRD reconcile and writes back `.status.phase` / `.status.streamRevision`.
 
-Sidecars authenticate with projected **ServiceAccount tokens** (`TokenReview`) when `AFP_POLICY_AUTH_ENABLED=true`.
+On CRD delete, the operator publishes `clear_overrides` to all sidecars.
+
+Transport: **mTLS** on port 8090 (`AFP_POLICY_TLS_ENABLED=true`) plus **TokenReview** for identity.
+
+```bash
+./scripts/generate_policy_tls.sh   # kind/local dev CA + secret
+kubectl get afpclusterpolicy enterprise-default
+# columns: PHASE, STREAMREV
+```
 
 ```bash
 kubectl -n afp-system port-forward svc/afp-policy-controller 8090:8090

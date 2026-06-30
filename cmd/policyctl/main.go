@@ -8,9 +8,9 @@ import (
 	"os"
 	"time"
 
+	"github.com/FilthyMudblood/aegis-fabric/internal/policyplane"
 	afppolicystream "github.com/FilthyMudblood/aegis-fabric/pkg/protocol/v1/policystream"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials/insecure"
 )
 
 func main() {
@@ -21,7 +21,11 @@ func main() {
 	maxDepth := flag.Uint("max-recursion-depth", 0, "optional emergency recursion depth (0 = unchanged)")
 	flag.Parse()
 
-	conn, err := grpc.NewClient(*controllerAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	opts, err := policyplane.GRPCDialOptions(os.Getenv("AFP_SA_TOKEN_PATH"))
+	if err != nil {
+		log.Fatalf("policy stream dial options: %v", err)
+	}
+	conn, err := grpc.NewClient(*controllerAddr, opts...)
 	if err != nil {
 		log.Fatalf("dial policy controller: %v", err)
 	}

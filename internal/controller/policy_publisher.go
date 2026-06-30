@@ -10,13 +10,18 @@ import (
 
 // PolicyPublisher pushes declarative CRD changes onto the runtime policy stream.
 type PolicyPublisher interface {
-	PublishPolicy(ctx context.Context, policyName string, generation int64, spec ClusterPolicySpec) error
+	PublishPolicy(ctx context.Context, policyName string, generation int64, spec ClusterPolicySpec) (uint64, error)
+	PublishClear(ctx context.Context, policyName string, reason string) (uint64, error)
 }
 
 type noopPublisher struct{}
 
-func (noopPublisher) PublishPolicy(context.Context, string, int64, ClusterPolicySpec) error {
-	return nil
+func (noopPublisher) PublishPolicy(context.Context, string, int64, ClusterPolicySpec) (uint64, error) {
+	return 0, nil
+}
+
+func (noopPublisher) PublishClear(context.Context, string, string) (uint64, error) {
+	return 0, nil
 }
 
 // NoopPublisher skips runtime stream publication (local dev without controller).
@@ -36,9 +41,9 @@ func (p *GRPCPolicyPublisher) PublishPolicy(
 	policyName string,
 	generation int64,
 	spec ClusterPolicySpec,
-) error {
+) (uint64, error) {
 	if p == nil || p.client == nil {
-		return nil
+		return 0, nil
 	}
 
 	entropy := spec.EntropyLimit
@@ -50,7 +55,7 @@ func (p *GRPCPolicyPublisher) PublishPolicy(
 		maxDepth = 10
 	}
 
-	_, err := p.client.PublishPolicyUpdate(ctx, &afppolicystream.PolicyUpdate{
+	ack, err := p.client.PublishPolicyUpdate(ctx, &afppolicystream.PolicyUpdate{
 		UpdateId:             fmt.Sprintf("crd-%s-%d", policyName, generation),
 		IssuedAtUnix:         time.Now().Unix(),
 		Source:               afppolicystream.PolicySource_CRD_RECONCILER,
@@ -61,5 +66,27 @@ func (p *GRPCPolicyPublisher) PublishPolicy(
 		MaxRecursionDepth:    maxDepth,
 		MaxRecursionDepthSet: true,
 	})
-	return err
+	if err != nil {
+		return 0, err
+	}
+	return ack.GetRevision(), nil
+}
+
+func (p *GRPCPolicyPublisher) PublishClear(ctx context.Context, policyName string, reason string) (uint64, error) {
+	if p == nil || p.client == nil {
+		return 0, nil
+	}
+
+	ack, err := p.client.PublishPolicyUpdate(ctx, &afppolicystream.PolicyUpdate{
+		UpdateId:         fmt.Sprintf("crd-delete-%s-%d", policyName, time.Now().Unix()),
+		IssuedAtUnix:     time.Now().Unix(),
+		Source:           afppolicystream.PolicySource_CRD_RECONCILER,
+		KillSwitchActive: false,
+		ClearOverrides:   true,
+	})
+	if err != nil {
+		return 0, err
+	}
+	_ = reason
+	return ack.GetRevision(), nil
 }

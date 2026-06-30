@@ -33,12 +33,15 @@ func TestGRPCPolicyPublisherPublishesCRDSpec(t *testing.T) {
 	defer conn.Close()
 
 	publisher := NewGRPCPolicyPublisher(afppolicystream.NewAFPPolicyStreamClient(conn))
-	err = publisher.PublishPolicy(context.Background(), "enterprise-default", 3, ClusterPolicySpec{
+	revision, err := publisher.PublishPolicy(context.Background(), "enterprise-default", 3, ClusterPolicySpec{
 		EntropyLimit:      0.82,
 		MaxRecursionDepth: 7,
 	})
 	if err != nil {
 		t.Fatalf("publish policy: %v", err)
+	}
+	if revision != 1 {
+		t.Fatalf("returned revision = %d, want 1", revision)
 	}
 
 	current, revision := hub.Current()
@@ -53,5 +56,46 @@ func TestGRPCPolicyPublisherPublishesCRDSpec(t *testing.T) {
 	}
 	if current.GetSource() != afppolicystream.PolicySource_CRD_RECONCILER {
 		t.Fatalf("source = %v", current.GetSource())
+	}
+}
+
+func TestGRPCPolicyPublisherPublishClear(t *testing.T) {
+	const bufSize = 1024 * 1024
+	lis := bufconn.Listen(bufSize)
+	hub := policyplane.NewHub()
+	hub.Publish(&afppolicystream.PolicyUpdate{
+		KillSwitchActive:     true,
+		EntropyLimit:         0.5,
+		EntropyLimitSet:      true,
+		MaxRecursionDepth:    3,
+		MaxRecursionDepthSet: true,
+	})
+	server := policyplane.NewServer(hub)
+	grpcServer := grpc.NewServer()
+	afppolicystream.RegisterAFPPolicyStreamServer(grpcServer, server)
+	go func() { _ = grpcServer.Serve(lis) }()
+	t.Cleanup(grpcServer.Stop)
+
+	conn, err := grpc.NewClient(
+		"passthrough:///bufnet",
+		grpc.WithContextDialer(func(context.Context, string) (net.Conn, error) { return lis.Dial() }),
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+	)
+	if err != nil {
+		t.Fatalf("dial: %v", err)
+	}
+	defer conn.Close()
+
+	publisher := NewGRPCPolicyPublisher(afppolicystream.NewAFPPolicyStreamClient(conn))
+	revision, err := publisher.PublishClear(context.Background(), "enterprise-default", "deleted")
+	if err != nil {
+		t.Fatalf("publish clear: %v", err)
+	}
+	if revision != 2 {
+		t.Fatalf("revision = %d, want 2", revision)
+	}
+	current, _ := hub.Current()
+	if !current.GetClearOverrides() {
+		t.Fatal("expected clear_overrides update")
 	}
 }

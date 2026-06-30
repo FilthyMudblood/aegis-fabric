@@ -39,6 +39,16 @@ spec:
         - name: afp-policy
           configMap:
             name: afp-sidecar-config
+        - name: afp-policy-tls
+          secret:
+            secretName: afp-policy-tls
+            items:
+              - key: client.crt
+                path: tls.crt
+              - key: client.key
+                path: tls.key
+              - key: ca.crt
+                path: ca.crt
 
       containers:
         - name: agent-core
@@ -76,6 +86,8 @@ spec:
                   fieldPath: metadata.namespace
             - name: AFP_POLICY_AUTH_ENABLED
               value: "true"
+            - name: AFP_POLICY_TLS_ENABLED
+              value: "true"
           ports:
             - name: mesh-ingress
               containerPort: 8080
@@ -96,6 +108,9 @@ spec:
               readOnly: true
             - name: afp-policy
               mountPath: /etc/afp/policy
+              readOnly: true
+            - name: afp-policy-tls
+              mountPath: /etc/afp/tls
               readOnly: true
           readinessProbe:
             exec:

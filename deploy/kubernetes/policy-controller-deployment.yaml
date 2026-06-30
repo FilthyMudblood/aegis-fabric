@@ -85,9 +85,15 @@ spec:
               value: afp-system
             - name: AFP_PUBLISHER_SERVICE_ACCOUNT
               value: system:serviceaccount:afp-system:afp-policy-operator
+            - name: AFP_POLICY_TLS_ENABLED
+              value: "true"
           ports:
             - name: grpc
               containerPort: 8090
+          volumeMounts:
+            - name: afp-policy-tls
+              mountPath: /etc/afp/tls
+              readOnly: true
           readinessProbe:
             tcpSocket:
               port: grpc
@@ -100,6 +106,17 @@ spec:
             limits:
               cpu: "200m"
               memory: "128Mi"
+      volumes:
+        - name: afp-policy-tls
+          secret:
+            secretName: afp-policy-tls
+            items:
+              - key: server.crt
+                path: tls.crt
+              - key: server.key
+                path: tls.key
+              - key: ca.crt
+                path: ca.crt
 
 ---
 apiVersion: v1

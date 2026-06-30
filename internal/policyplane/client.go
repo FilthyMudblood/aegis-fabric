@@ -10,17 +10,16 @@ import (
 	"github.com/FilthyMudblood/aegis-fabric/internal/policyplane/auth"
 	afppolicystream "github.com/FilthyMudblood/aegis-fabric/pkg/protocol/v1/policystream"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials/insecure"
 )
 
 // StreamClient subscribes to AFPPolicyStream and applies runtime overlays.
 type StreamClient struct {
-	addr        string
-	sidecarID   string
-	namespace   string
-	tokenPath   string
-	authEnabled bool
-	runtime     *config.RuntimePolicy
+	addr         string
+	sidecarID    string
+	namespace    string
+	tokenPath    string
+	authEnabled  bool
+	runtime      *config.RuntimePolicy
 	lastRevision atomic.Uint64
 }
 
@@ -63,9 +62,9 @@ func (c *StreamClient) Run(ctx context.Context) error {
 }
 
 func (c *StreamClient) consume(ctx context.Context) error {
-	opts := []grpc.DialOption{grpc.WithTransportCredentials(insecure.NewCredentials())}
-	if c.authEnabled {
-		opts = append(opts, grpc.WithPerRPCCredentials(auth.SATokenCredentials{TokenPath: c.tokenPath}))
+	opts, err := GRPCDialOptions(c.tokenPath)
+	if err != nil {
+		return err
 	}
 
 	conn, err := grpc.NewClient(c.addr, opts...)
@@ -89,6 +88,7 @@ func (c *StreamClient) consume(ctx context.Context) error {
 		"controller", c.addr,
 		"sidecar_id", c.sidecarID,
 		"last_revision", c.lastRevision.Load(),
+		"tls_enabled", PolicyTLSConfig().Enabled,
 	)
 	for {
 		update, err := stream.Recv()

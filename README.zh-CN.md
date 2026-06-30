@@ -165,9 +165,9 @@ go run ./cmd/simulator
 | 阶段 | 交付 |
 |------|------|
 | **Phase 1** | 数据面 · SDK · LangGraph · K8s 伴生 · CRD Operator · demo-agent |
-| **Phase 2** | 策略推流 · Operator 桥接 · TokenReview · revision 续传 · GHCR CI |
+| **Phase 2** | 策略推流 · Operator 桥接 · TokenReview · revision 续传 · **mTLS** · **状态回写** · **删除传播** · GHCR CI |
 
-**代码冻结于 PR-6b。** 下一里程碑：白皮书 v2.0。
+**代码冻结于 PR-6c。** 下一里程碑：白皮书 v2.0。
 
 ---
 
