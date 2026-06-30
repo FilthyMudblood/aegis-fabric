@@ -98,6 +98,16 @@ kubectl -n afp-system logs -f deploy/afp-agent-node -c agent-core
 
 `Dockerfile.demo-agent` packages `sdk/python/examples/langgraph_planner.py` with `--loop` for periodic recursion-breaker demos over UDS.
 
+### Expected agent-core logs
+
+```text
+afp-demo-agent: waiting for sidecar IPC at /var/run/afp/agent.sock
+afp-demo-agent: sidecar socket ready
+--- langgraph planner demo (initial_depth=10) ---
+[AFP SDK] LangGraph node blocked: afp-core: recursion depth exceeded physical limit, intent loop detected
+annotated-stop: afp-core: recursion depth exceeded physical limit, intent loop detected
+```
+
 ## In-Pod Demos
 
 ```bash

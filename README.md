@@ -89,37 +89,57 @@ PYTHONPATH=. python examples/langgraph_planner.py
 
 ### Path B — kind cluster (full mesh)
 
-One script builds the image, loads it into kind, applies manifests, and runs in-pod demos:
+One script builds both images, loads them into kind, applies manifests, and runs in-pod demos:
 
 ```bash
-./scripts/kind-quickstart.sh
+make kind-quickstart
+# equivalent: ./scripts/kind-quickstart.sh
 ```
+
+Then tail the application-layer proof:
+
+```bash
+kubectl -n afp-system logs -f deploy/afp-agent-node -c agent-core
+```
+
+#### Expected output (black-box replay)
+
+This is the **buyer demo** — copy/paste evidence from a live cluster. Three layers bite in one log stream:
+
+```text
+afp-demo-agent: waiting for sidecar IPC at /var/run/afp/agent.sock
+afp-demo-agent: sidecar socket ready
+--- langgraph planner demo (initial_depth=10) ---
+[AFP SDK] LangGraph node blocked: afp-core: recursion depth exceeded physical limit, intent loop detected
+annotated-stop: afp-core: recursion depth exceeded physical limit, intent loop detected
+```
+
+| Log line | Layer | What it proves |
+|----------|-------|----------------|
+| `waiting … agent.sock` → `socket ready` | **L2 IPC (PR-4)** | `emptyDir` UDS mount works; Python agent and Go sidecar share a microsecond IPC corridor — no TCP stack |
+| `LangGraph node blocked … ISOLATED` | **L1 + L2 + L3 (PR-1, PR-5)** | `initial_depth=10` hits `maxRecursionDepth: 10`; SDK `pre_flight_check()` → Sidecar `EvaluatePreFlight` → hard stop before intent becomes I/O |
+| `annotated-stop: …` | **L1 adapter (PR-3)** | `@afp_governed_node(on_quota_exceeded="annotate")` — no OOM, no CrashLoop; graceful state-machine landing |
 
 Manual equivalent:
 
 ```bash
 kind create cluster --name afp
+make demo-agent-docker
 docker build -t ghcr.io/filthymudblood/aegis-fabric-sidecar:latest .
 kind load docker-image ghcr.io/filthymudblood/aegis-fabric-sidecar:latest --name afp
+kind load docker-image ghcr.io/filthymudblood/afp-demo-agent:latest --name afp
 
 kubectl apply -f deploy/kubernetes/namespace.yaml
 kubectl apply -f deploy/kubernetes/configmap-afp.yaml
 kubectl apply -f deploy/kubernetes/crd/afpclusterpolicy.yaml
 kubectl apply -f deploy/kubernetes/examples/afpclusterpolicy-enterprise.yaml
-kubectl apply -f deploy/kubernetes/agent-pod-template.yaml
+kubectl apply -f deploy/kubernetes/agent-pod-demo.yaml
 
-kubectl -n afp-system wait --for=condition=Ready pod -l app.kubernetes.io/component=agent-node --timeout=120s
-POD=$(kubectl -n afp-system get pod -l app.kubernetes.io/component=agent-node -o jsonpath='{.items[0].metadata.name}')
-
-# Dead-loop signal: recursion depth > policy limit
-kubectl -n afp-system exec "$POD" -c afp-sidecar -- \
-  preflightclient --recursion-depth 12
-
-# Dynamic policy: tighten entropy limit cluster-wide
-kubectl patch afpclusterpolicy enterprise-default --type merge \
-  -p '{"spec":{"entropyLimit":0.80}}'
-go run ./cmd/operator   # reconciles ConfigMaps; sidecar hot-reloads via fsnotify
+kubectl -n afp-system wait --for=condition=Ready pod -l app.kubernetes.io/component=agent-node --timeout=180s
+kubectl -n afp-system logs -f deploy/afp-agent-node -c agent-core
 ```
+
+**Public images (roadmap):** publish `ghcr.io/filthymudblood/afp-demo-agent:latest` and the sidecar image to GHCR so newcomers can `kubectl apply` without a local `docker build`. Until then, `make kind-quickstart` builds and loads both images automatically.
 
 See [deploy/kubernetes/README.md](deploy/kubernetes/README.md) for topology details.
 
@@ -334,9 +354,17 @@ aegis-fabric/
 
 ## Implementation Status
 
-**Shipped:** TCP/LV data plane · ACC/FSM · SDK IPC · LangGraph adapter · K8s sidecar co-deploy · CRD operator · ConfigMap hot-reload
+**Phase 1 — shipped:** TCP/LV data plane · ACC/FSM · SDK IPC · LangGraph adapter · K8s sidecar co-deploy · CRD operator · ConfigMap hot-reload · demo-agent image
 
-**Hardening:** full cgroup reader · production crypto verification · iptables/eBPF socket hijack · gRPC `StreamPolicyUpdates` (Phase 2)
+**Phase 2 — next (PR-6):** gRPC central control plane · `StreamPolicyUpdates` sub-second Kill Switch · policy push alongside ConfigMap law
+
+| Phase 1 (law) | Phase 2 (injunction) |
+|---------------|----------------------|
+| `AFPClusterPolicy` CRD → Operator → ConfigMap | Control service streams policy deltas to sidecars |
+| `fsnotify` hot-reload (~60s kubelet sync) | Sub-second runtime Kill Switch / emergency entropy clamp |
+| Declarative threshold tuning | Operational incident response |
+
+**Hardening (parallel):** full cgroup reader · production crypto verification · iptables/eBPF socket hijack · publish images to GHCR
 
 ---
 

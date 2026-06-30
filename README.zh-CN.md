@@ -89,13 +89,39 @@ PYTHONPATH=. python examples/langgraph_planner.py
 
 ### 路径 B — kind 集群（完整网格）
 
-一键脚本：构建镜像、加载到 kind、apply 清单、在 Pod 内演示：
+一键脚本：构建 sidecar + demo-agent、加载到 kind、apply 清单、在 Pod 内演示：
 
 ```bash
-./scripts/kind-quickstart.sh
+make kind-quickstart
 ```
 
+查看应用层拦截日志（**买家秀**）：
+
+```bash
+kubectl -n afp-system logs -f deploy/afp-agent-node -c agent-core
+```
+
+#### 期望输出（黑匣子回放）
+
+三段日志，三层防御在同一条流里咬合：
+
+```text
+afp-demo-agent: waiting for sidecar IPC at /var/run/afp/agent.sock
+afp-demo-agent: sidecar socket ready
+--- langgraph planner demo (initial_depth=10) ---
+[AFP SDK] LangGraph node blocked: afp-core: recursion depth exceeded physical limit, intent loop detected
+annotated-stop: afp-core: recursion depth exceeded physical limit, intent loop detected
+```
+
+| 日志行 | 层级 | 证明什么 |
+|--------|------|----------|
+| `waiting … agent.sock` → `socket ready` | **L2 IPC（PR-4）** | `emptyDir` UDS 挂载正确；Python 与 Go Sidecar 微秒级 IPC，无 TCP 开销 |
+| `LangGraph node blocked …` | **L1+L2+L3（PR-1, PR-5）** | `initial_depth=10` 触碰 CRD `maxRecursionDepth: 10`；SDK → Sidecar `EvaluatePreFlight` → ISOLATED |
+| `annotated-stop: …` | **L1 适配器（PR-3）** | `annotate` 模式：无 OOM、无 CrashLoop，状态机优雅软着陆 |
+
 手动步骤见英文 [README.md](README.md#path-b--kind-cluster-full-mesh)。
+
+**公开镜像（路线图）：** 将 `afp-demo-agent` 与 sidecar 推送到 GHCR，体验者无需本地 `docker build` 即可 `kubectl apply`。当前请用 `make kind-quickstart` 自动构建加载。
 
 部署细节：[deploy/kubernetes/README.md](deploy/kubernetes/README.md)
 
@@ -265,9 +291,17 @@ aegis-fabric/
 
 ## 实现状态
 
-**已交付：** 数据面 · SDK IPC · LangGraph 适配器 · K8s Sidecar 伴生部署 · CRD Operator · ConfigMap 热加载
+**Phase 1 — 已交付：** 数据面 · SDK IPC · LangGraph 适配器 · K8s Sidecar 伴生部署 · CRD Operator · ConfigMap 热加载 · demo-agent 镜像
 
-**硬化中：** cgroup 完整读取 · 生产级签名校验 · iptables/eBPF · gRPC 策略推流（Phase 2）
+**Phase 2 — 下一步（PR-6）：** gRPC 中央控制面 · `StreamPolicyUpdates` 亚秒级 Kill Switch · 与 ConfigMap 法律并行的运行时推流
+
+| Phase 1（法律） | Phase 2（指令） |
+|----------------|----------------|
+| CRD → Operator → ConfigMap | 控制服务向 Sidecar 推送策略增量 |
+| `fsnotify` 热加载（kubelet ~60s） | 亚秒级 Kill Switch / 紧急熵压钳制 |
+| 声明式阈值调优 | 运维事故响应 |
+
+**硬化（并行）：** cgroup 完整读取 · 生产级签名校验 · iptables/eBPF · 镜像发布至 GHCR
 
 ---
 
