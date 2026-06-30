@@ -38,8 +38,15 @@ func main() {
 		os.Exit(1)
 	}
 
-	operator := controller.NewPolicyController(dyn, kube)
-	slog.Info("AFP policy operator started", "crd", controller.Kind)
+	publisher, closePublisher, err := controller.NewPolicyPublisherFromEnv()
+	if err != nil {
+		slog.Error("failed to initialize policy publisher", "error", err)
+		os.Exit(1)
+	}
+	defer closePublisher()
+
+	operator := controller.NewPolicyController(dyn, kube, publisher)
+	slog.Info("AFP policy operator started", "crd", controller.Kind, "policy_stream", os.Getenv("AFP_POLICY_CONTROLLER_ADDR") != "")
 	if err := operator.Run(ctx); err != nil {
 		slog.Error("operator stopped", "error", err)
 		os.Exit(1)

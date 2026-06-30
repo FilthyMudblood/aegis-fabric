@@ -23,16 +23,21 @@ var clusterPolicyGVR = schema.GroupVersionResource{
 }
 
 type PolicyController struct {
-	dynamic   dynamic.Interface
-	kube      kubernetes.Interface
+	dynamic    dynamic.Interface
+	kube       kubernetes.Interface
 	reconciler *ConfigMapReconciler
+	publisher  PolicyPublisher
 }
 
-func NewPolicyController(dynamicClient dynamic.Interface, kubeClient kubernetes.Interface) *PolicyController {
+func NewPolicyController(dynamicClient dynamic.Interface, kubeClient kubernetes.Interface, publisher PolicyPublisher) *PolicyController {
+	if publisher == nil {
+		publisher = NoopPublisher
+	}
 	return &PolicyController{
 		dynamic:    dynamicClient,
 		kube:       kubeClient,
 		reconciler: NewConfigMapReconciler(kubeClient),
+		publisher:  publisher,
 	}
 }
 
@@ -101,10 +106,15 @@ func (c *PolicyController) reconcileObject(ctx context.Context, obj *unstructure
 	slog.Info(
 		"reconciled AFPClusterPolicy",
 		"name", obj.GetName(),
+		"generation", obj.GetGeneration(),
 		"namespaces", namespaces,
 		"entropyLimit", policy.Spec.EntropyLimit,
 		"maxRecursionDepth", policy.Spec.MaxRecursionDepth,
 	)
+	if err := c.publisher.PublishPolicy(ctx, obj.GetName(), obj.GetGeneration(), policy.Spec); err != nil {
+		return fmt.Errorf("publish policy stream: %w", err)
+	}
+	slog.Info("published AFPClusterPolicy to runtime stream", "name", obj.GetName(), "generation", obj.GetGeneration())
 	return nil
 }
 

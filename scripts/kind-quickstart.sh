@@ -4,6 +4,7 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 CLUSTER_NAME="${KIND_CLUSTER_NAME:-afp}"
 SIDECAR_IMAGE="ghcr.io/filthymudblood/aegis-fabric-sidecar:latest"
+OPERATOR_IMAGE="ghcr.io/filthymudblood/aegis-fabric-operator:latest"
 DEMO_AGENT_IMAGE="ghcr.io/filthymudblood/afp-demo-agent:latest"
 NAMESPACE="afp-system"
 
@@ -26,11 +27,15 @@ fi
 echo "Building sidecar image..."
 docker build -t "${SIDECAR_IMAGE}" "${ROOT}"
 
+echo "Building operator image..."
+docker build -f "${ROOT}/Dockerfile.operator" -t "${OPERATOR_IMAGE}" "${ROOT}"
+
 echo "Building demo agent image..."
 docker build -f "${ROOT}/Dockerfile.demo-agent" -t "${DEMO_AGENT_IMAGE}" "${ROOT}"
 
 echo "Loading images into kind..."
 kind load docker-image "${SIDECAR_IMAGE}" --name "${CLUSTER_NAME}"
+kind load docker-image "${OPERATOR_IMAGE}" --name "${CLUSTER_NAME}"
 kind load docker-image "${DEMO_AGENT_IMAGE}" --name "${CLUSTER_NAME}"
 
 echo "Applying AFP Kubernetes manifests..."
@@ -38,6 +43,8 @@ kubectl apply -f "${ROOT}/deploy/kubernetes/namespace.yaml"
 kubectl apply -f "${ROOT}/deploy/kubernetes/configmap-afp.yaml"
 kubectl apply -f "${ROOT}/deploy/kubernetes/crd/afpclusterpolicy.yaml"
 kubectl apply -f "${ROOT}/deploy/kubernetes/examples/afpclusterpolicy-enterprise.yaml"
+kubectl apply -f "${ROOT}/deploy/kubernetes/policy-controller-deployment.yaml"
+kubectl apply -f "${ROOT}/deploy/kubernetes/operator-deployment.yaml"
 kubectl apply -f "${ROOT}/deploy/kubernetes/agent-pod-demo.yaml"
 
 echo "Waiting for agent pod..."

@@ -26,6 +26,10 @@ spec:
           env:
             - name: KUBECONFIG
               value: ""
+            - name: AFP_POLICY_CONTROLLER_ADDR
+              value: afp-policy-controller.afp-system.svc.cluster.local:8090
+            - name: AFP_POLICY_AUTH_ENABLED
+              value: "true"
 ---
 apiVersion: v1
 kind: ServiceAccount

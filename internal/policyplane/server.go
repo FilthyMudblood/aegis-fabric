@@ -31,7 +31,7 @@ func (s *Server) StreamPolicyUpdates(
 		return fmt.Errorf("policyplane: sidecar_id is required")
 	}
 
-	updates, unsubscribe := s.hub.Subscribe(sidecarID)
+	updates, unsubscribe := s.hub.Subscribe(sidecarID, req.GetLastRevision())
 	defer unsubscribe()
 
 	for {

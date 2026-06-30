@@ -9,7 +9,11 @@ import (
 	"syscall"
 
 	"github.com/FilthyMudblood/aegis-fabric/internal/policyplane"
+	"github.com/FilthyMudblood/aegis-fabric/internal/policyplane/auth"
 	afppolicystream "github.com/FilthyMudblood/aegis-fabric/pkg/protocol/v1/policystream"
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/clientcmd"
 	"google.golang.org/grpc"
 )
 
@@ -27,7 +31,26 @@ func main() {
 
 	hub := policyplane.NewHub()
 	server := policyplane.NewServer(hub)
+
+	authCfg := auth.ConfigFromEnv()
+	var authenticator *auth.Authenticator
+	if authCfg.Enabled {
+		kube, err := loadKubeClient()
+		if err != nil {
+			slog.Error("policy auth enabled but kubernetes client unavailable", "error", err)
+			os.Exit(1)
+		}
+		authenticator = auth.NewAuthenticator(kube, authCfg)
+		slog.Info("policy stream authentication enabled", "namespace", authCfg.AllowedNamespace)
+	}
+
 	grpcServer := grpc.NewServer()
+	if authenticator != nil {
+		grpcServer = grpc.NewServer(
+			grpc.UnaryInterceptor(authenticator.UnaryServerInterceptor()),
+			grpc.StreamInterceptor(authenticator.StreamServerInterceptor()),
+		)
+	}
 	afppolicystream.RegisterAFPPolicyStreamServer(grpcServer, server)
 
 	listener, err := net.Listen("tcp", addr)
@@ -41,9 +64,27 @@ func main() {
 		grpcServer.GracefulStop()
 	}()
 
-	slog.Info("AFP policy controller started", "address", addr)
+	slog.Info("AFP policy controller started", "address", addr, "auth_enabled", authCfg.Enabled)
 	if err := grpcServer.Serve(listener); err != nil {
 		slog.Error("policy controller stopped", "error", err)
 		os.Exit(1)
 	}
+}
+
+func loadKubeClient() (kubernetes.Interface, error) {
+	if kubeconfig := os.Getenv("KUBECONFIG"); kubeconfig != "" {
+		cfg, err := clientcmd.BuildConfigFromFlags("", kubeconfig)
+		if err != nil {
+			return nil, err
+		}
+		return kubernetes.NewForConfig(cfg)
+	}
+	if cfg, err := rest.InClusterConfig(); err == nil {
+		return kubernetes.NewForConfig(cfg)
+	}
+	cfg, err := clientcmd.BuildConfigFromFlags("", clientcmd.RecommendedHomeFile)
+	if err != nil {
+		return nil, err
+	}
+	return kubernetes.NewForConfig(cfg)
 }

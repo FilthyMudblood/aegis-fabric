@@ -16,6 +16,40 @@ spec:
       targetPort: 8090
 
 ---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: afp-policy-controller
+  namespace: afp-system
+  labels:
+    app.kubernetes.io/name: aegis-fabric
+    app.kubernetes.io/component: policy-controller
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: afp-policy-controller
+rules:
+  - apiGroups: ["authentication.k8s.io"]
+    resources: ["tokenreviews"]
+    verbs: ["create"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: afp-policy-controller
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: afp-policy-controller
+subjects:
+  - kind: ServiceAccount
+    name: afp-policy-controller
+    namespace: afp-system
+
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -36,6 +70,7 @@ spec:
         app.kubernetes.io/name: aegis-fabric
         app.kubernetes.io/component: policy-controller
     spec:
+      serviceAccountName: afp-policy-controller
       containers:
         - name: policy-controller
           image: ghcr.io/filthymudblood/aegis-fabric-sidecar:latest
@@ -44,6 +79,12 @@ spec:
           env:
             - name: AFP_POLICY_CONTROLLER_ADDR
               value: ":8090"
+            - name: AFP_POLICY_AUTH_ENABLED
+              value: "true"
+            - name: AFP_ALLOWED_NAMESPACE
+              value: afp-system
+            - name: AFP_PUBLISHER_SERVICE_ACCOUNT
+              value: system:serviceaccount:afp-system:afp-policy-operator
           ports:
             - name: grpc
               containerPort: 8090
@@ -59,3 +100,13 @@ spec:
             limits:
               cpu: "200m"
               memory: "128Mi"
+
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: afp-sidecar-agent
+  namespace: afp-system
+  labels:
+    app.kubernetes.io/name: aegis-fabric
+    app.kubernetes.io/component: agent-node

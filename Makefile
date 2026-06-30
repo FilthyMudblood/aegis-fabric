@@ -22,6 +22,9 @@ docker:
 demo-agent-docker:
 	docker build -f Dockerfile.demo-agent -t $(DEMO_AGENT_IMAGE) .
 
+operator-docker:
+	docker build -f Dockerfile.operator -t ghcr.io/filthymudblood/aegis-fabric-operator:latest .
+
 run: build
 	./bin/$(APP_NAME)
 

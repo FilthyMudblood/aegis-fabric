@@ -92,14 +92,17 @@ kubectl -n afp-system exec deploy/afp-agent-node -c afp-sidecar -- ls -la /etc/a
 
 ```bash
 kubectl apply -f deploy/kubernetes/policy-controller-deployment.yaml
-kubectl -n afp-system port-forward svc/afp-policy-controller 8090:8090
-
-# Flip Kill Switch from your workstation
-go run ./cmd/policyctl --controller 127.0.0.1:8090 --kill-switch
-go run ./cmd/policyctl --controller 127.0.0.1:8090 --clear
+kubectl apply -f deploy/kubernetes/operator-deployment.yaml
 ```
 
-Sidecars connect when `AFP_POLICY_CONTROLLER_ADDR` is set (demo deployment enables this).
+Operator publishes to the controller on every CRD reconcile (`AFP_POLICY_CONTROLLER_ADDR`).
+
+Sidecars authenticate with projected **ServiceAccount tokens** (`TokenReview`) when `AFP_POLICY_AUTH_ENABLED=true`.
+
+```bash
+kubectl -n afp-system port-forward svc/afp-policy-controller 8090:8090
+go run ./cmd/policyctl --controller 127.0.0.1:8090 --kill-switch
+```
 
 ## Demo Agent
 

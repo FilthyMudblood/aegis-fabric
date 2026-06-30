@@ -4,7 +4,10 @@ import (
 	"sync"
 
 	afppolicystream "github.com/FilthyMudblood/aegis-fabric/pkg/protocol/v1/policystream"
+	"google.golang.org/protobuf/proto"
 )
+
+const defaultHistoryLimit = 128
 
 type subscriber struct {
 	id      string
@@ -16,6 +19,7 @@ type Hub struct {
 	mu       sync.RWMutex
 	revision uint64
 	current  *afppolicystream.PolicyUpdate
+	history  []*afppolicystream.PolicyUpdate
 	subs     map[string]*subscriber
 }
 
@@ -31,8 +35,21 @@ func (h *Hub) Current() (*afppolicystream.PolicyUpdate, uint64) {
 	if h.current == nil {
 		return nil, h.revision
 	}
-	copy := *h.current
-	return &copy, h.revision
+	copy := proto.Clone(h.current).(*afppolicystream.PolicyUpdate)
+	return copy, h.revision
+}
+
+func (h *Hub) HistorySince(lastRevision uint64) []*afppolicystream.PolicyUpdate {
+	h.mu.RLock()
+	defer h.mu.RUnlock()
+
+	out := make([]*afppolicystream.PolicyUpdate, 0)
+	for _, update := range h.history {
+		if update.GetRevision() > lastRevision {
+			out = append(out, proto.Clone(update).(*afppolicystream.PolicyUpdate))
+		}
+	}
+	return out
 }
 
 func (h *Hub) Publish(update *afppolicystream.PolicyUpdate) uint64 {
@@ -43,7 +60,12 @@ func (h *Hub) Publish(update *afppolicystream.PolicyUpdate) uint64 {
 	h.mu.Lock()
 	h.revision++
 	update.Revision = h.revision
-	h.current = update
+	stored := proto.Clone(update).(*afppolicystream.PolicyUpdate)
+	h.current = stored
+	h.history = append(h.history, stored)
+	if len(h.history) > defaultHistoryLimit {
+		h.history = append([]*afppolicystream.PolicyUpdate(nil), h.history[len(h.history)-defaultHistoryLimit:]...)
+	}
 	subs := make([]*subscriber, 0, len(h.subs))
 	for _, sub := range h.subs {
 		subs = append(subs, sub)
@@ -52,14 +74,14 @@ func (h *Hub) Publish(update *afppolicystream.PolicyUpdate) uint64 {
 
 	for _, sub := range subs {
 		select {
-		case sub.updates <- update:
+		case sub.updates <- proto.Clone(stored).(*afppolicystream.PolicyUpdate):
 		default:
 		}
 	}
 	return h.revision
 }
 
-func (h *Hub) Subscribe(sidecarID string) (<-chan *afppolicystream.PolicyUpdate, func()) {
+func (h *Hub) Subscribe(sidecarID string, lastRevision uint64) (<-chan *afppolicystream.PolicyUpdate, func()) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 
@@ -69,14 +91,10 @@ func (h *Hub) Subscribe(sidecarID string) (<-chan *afppolicystream.PolicyUpdate,
 
 	sub := &subscriber{
 		id:      sidecarID,
-		updates: make(chan *afppolicystream.PolicyUpdate, 8),
+		updates: make(chan *afppolicystream.PolicyUpdate, 16),
 	}
 	h.subs[sidecarID] = sub
-
-	if h.current != nil {
-		snapshot := *h.current
-		sub.updates <- &snapshot
-	}
+	h.replayLocked(sub, lastRevision)
 
 	unsubscribe := func() {
 		h.mu.Lock()
@@ -87,4 +105,18 @@ func (h *Hub) Subscribe(sidecarID string) (<-chan *afppolicystream.PolicyUpdate,
 		}
 	}
 	return sub.updates, unsubscribe
+}
+
+func (h *Hub) replayLocked(sub *subscriber, lastRevision uint64) {
+	if lastRevision == 0 {
+		if h.current != nil {
+			sub.updates <- proto.Clone(h.current).(*afppolicystream.PolicyUpdate)
+		}
+		return
+	}
+	for _, update := range h.history {
+		if update.GetRevision() > lastRevision {
+			sub.updates <- proto.Clone(update).(*afppolicystream.PolicyUpdate)
+		}
+	}
 }

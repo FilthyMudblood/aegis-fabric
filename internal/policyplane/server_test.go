@@ -14,7 +14,7 @@ import (
 
 func TestHubPublishAndSubscribe(t *testing.T) {
 	hub := NewHub()
-	updates, unsubscribe := hub.Subscribe("sidecar-a")
+	updates, unsubscribe := hub.Subscribe("sidecar-a", 0)
 	defer unsubscribe()
 
 	revision := hub.Publish(&afppolicystream.PolicyUpdate{
@@ -33,6 +33,32 @@ func TestHubPublishAndSubscribe(t *testing.T) {
 		}
 	case <-time.After(time.Second):
 		t.Fatal("timed out waiting for policy update")
+	}
+}
+
+func TestHubReplayMissedRevisions(t *testing.T) {
+	hub := NewHub()
+	hub.Publish(&afppolicystream.PolicyUpdate{UpdateId: "u1", KillSwitchActive: false})
+	hub.Publish(&afppolicystream.PolicyUpdate{UpdateId: "u2", KillSwitchActive: true})
+
+	updates, unsubscribe := hub.Subscribe("sidecar-reconnect", 1)
+	defer unsubscribe()
+
+	var received []*afppolicystream.PolicyUpdate
+deadline := time.After(2 * time.Second)
+	for len(received) < 1 {
+		select {
+		case update := <-updates:
+			received = append(received, update)
+		case <-deadline:
+			t.Fatalf("expected replay after revision 1, got %d updates", len(received))
+		}
+	}
+	if !received[0].GetKillSwitchActive() {
+		t.Fatal("expected replayed kill switch update")
+	}
+	if received[0].GetRevision() != 2 {
+		t.Fatalf("expected revision 2, got %d", received[0].GetRevision())
 	}
 }
 
