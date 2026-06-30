@@ -6,6 +6,7 @@ import (
 	"github.com/FilthyMudblood/aegis-fabric/internal/config"
 	"github.com/FilthyMudblood/aegis-fabric/internal/core"
 	afpsdk "github.com/FilthyMudblood/aegis-fabric/pkg/protocol/v1/sdk"
+	afppolicystream "github.com/FilthyMudblood/aegis-fabric/pkg/protocol/v1/policystream"
 )
 
 func newTestSEAForPreFlight(simulatedMem float64) *SingleExecutionAuthority {
@@ -50,6 +51,20 @@ func TestEvaluatePreFlight_ThrottlesHighContext(t *testing.T) {
 	}
 	if resp.GetDelayMs() == 0 {
 		t.Fatalf("expected non-zero delay_ms")
+	}
+}
+
+func TestEvaluatePreFlight_IsolatesOnKillSwitch(t *testing.T) {
+	sea := newTestSEAForPreFlight(0.1)
+	sea.ReportInternalState(1, 128)
+	sea.RuntimePolicy().ApplyStreamUpdate(&afppolicystream.PolicyUpdate{KillSwitchActive: true})
+
+	resp := sea.EvaluatePreFlight("trace-kill", "", 1)
+	if resp.GetAction() != afpsdk.PreFlightResponse_ISOLATED {
+		t.Fatalf("expected ISOLATED on kill switch, got %v", resp.GetAction())
+	}
+	if resp.GetBlockReason() == "" {
+		t.Fatal("expected kill switch block reason")
 	}
 }
 

@@ -88,6 +88,19 @@ kubectl -n afp-system get configmap afp-sidecar-config -o yaml
 kubectl -n afp-system exec deploy/afp-agent-node -c afp-sidecar -- ls -la /etc/afp/policy
 ```
 
+## Policy Controller (Phase 2)
+
+```bash
+kubectl apply -f deploy/kubernetes/policy-controller-deployment.yaml
+kubectl -n afp-system port-forward svc/afp-policy-controller 8090:8090
+
+# Flip Kill Switch from your workstation
+go run ./cmd/policyctl --controller 127.0.0.1:8090 --kill-switch
+go run ./cmd/policyctl --controller 127.0.0.1:8090 --clear
+```
+
+Sidecars connect when `AFP_POLICY_CONTROLLER_ADDR` is set (demo deployment enables this).
+
 ## Demo Agent
 
 ```bash

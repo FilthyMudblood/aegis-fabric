@@ -6,24 +6,37 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"sync"
 	"sync/atomic"
 
 	"github.com/fsnotify/fsnotify"
+	afppolicystream "github.com/FilthyMudblood/aegis-fabric/pkg/protocol/v1/policystream"
 )
 
 // RuntimePolicy holds hot-reloadable sidecar thresholds.
+// ConfigMap/fsnotify is declarative law; stream overlay is runtime injunction.
 type RuntimePolicy struct {
-	entropyLimit      atomic.Value // float64
+	baseEntropy      atomic.Value // float64
+	baseMaxDepth     atomic.Uint32
+	entropyLimit     atomic.Value // float64 effective
 	maxRecursionDepth atomic.Uint32
+	killSwitch       atomic.Bool
+
+	overlayMu sync.RWMutex
+	overlay   *PolicyStreamOverlay
 }
 
 func NewRuntimePolicy(base CoreConfig) *RuntimePolicy {
 	rp := &RuntimePolicy{}
-	rp.entropyLimit.Store(base.EntropyLimit)
 	if base.MaxRecursionDepth == 0 {
 		base.MaxRecursionDepth = 10
 	}
-	rp.maxRecursionDepth.Store(base.MaxRecursionDepth)
+	if base.EntropyLimit <= 0 {
+		base.EntropyLimit = 0.95
+	}
+	rp.baseEntropy.Store(base.EntropyLimit)
+	rp.baseMaxDepth.Store(base.MaxRecursionDepth)
+	rp.recomputeEffective()
 	return rp
 }
 
@@ -43,17 +56,70 @@ func (rp *RuntimePolicy) MaxRecursionDepth() uint32 {
 	return value
 }
 
+func (rp *RuntimePolicy) KillSwitchActive() bool {
+	return rp.killSwitch.Load()
+}
+
+func (rp *RuntimePolicy) ApplyStreamUpdate(update *afppolicystream.PolicyUpdate) {
+	rp.overlayMu.Lock()
+	defer rp.overlayMu.Unlock()
+	rp.overlay = overlayFromUpdate(update)
+	rp.recomputeEffective()
+}
+
+func (rp *RuntimePolicy) StreamOverlay() *PolicyStreamOverlay {
+	rp.overlayMu.RLock()
+	defer rp.overlayMu.RUnlock()
+	if rp.overlay == nil {
+		return nil
+	}
+	copy := *rp.overlay
+	return &copy
+}
+
+func (rp *RuntimePolicy) recomputeEffective() {
+	baseEntropy, _ := rp.baseEntropy.Load().(float64)
+	if baseEntropy <= 0 {
+		baseEntropy = 0.95
+	}
+	baseDepth := rp.baseMaxDepth.Load()
+	if baseDepth == 0 {
+		baseDepth = 10
+	}
+
+	effectiveEntropy := baseEntropy
+	effectiveDepth := baseDepth
+	killSwitch := false
+
+	if rp.overlay != nil && rp.overlay.Active {
+		killSwitch = rp.overlay.KillSwitchActive
+		if rp.overlay.EntropyLimit != nil {
+			effectiveEntropy = *rp.overlay.EntropyLimit
+		}
+		if rp.overlay.MaxRecursionDepth != nil {
+			effectiveDepth = *rp.overlay.MaxRecursionDepth
+		}
+	}
+
+	rp.entropyLimit.Store(effectiveEntropy)
+	rp.maxRecursionDepth.Store(effectiveDepth)
+	rp.killSwitch.Store(killSwitch)
+}
+
 func (rp *RuntimePolicy) ApplyEnvMap(data map[string]string) {
+	rp.overlayMu.Lock()
+	defer rp.overlayMu.Unlock()
 	if raw, ok := data["AFP_ENTROPY_LIMIT"]; ok {
 		if parsed, err := strconv.ParseFloat(strings.TrimSpace(raw), 64); err == nil && parsed > 0 {
-			rp.entropyLimit.Store(parsed)
+			rp.baseEntropy.Store(parsed)
 		}
 	}
 	if raw, ok := data["AFP_MAX_RECURSION_DEPTH"]; ok {
 		if parsed, err := strconv.ParseUint(strings.TrimSpace(raw), 10, 32); err == nil && parsed > 0 {
-			rp.maxRecursionDepth.Store(uint32(parsed))
+			rp.baseMaxDepth.Store(uint32(parsed))
 		}
 	}
+	rp.recomputeEffective()
 }
 
 func (rp *RuntimePolicy) WatchPolicyDir(dir string) error {

@@ -1,0 +1,55 @@
+syntax = "proto3";
+
+package afp.v1.policystream;
+
+option go_package = "github.com/FilthyMudblood/aegis-fabric/pkg/protocol/v1/policystream;afppolicystream";
+
+// AFPPolicyStream is the Phase 2 runtime control plane.
+// ConfigMap + fsnotify remains declarative law; this stream delivers sub-second injunctions.
+service AFPPolicyStream {
+  // StreamPolicyUpdates pushes policy deltas and emergency overrides to sidecars.
+  rpc StreamPolicyUpdates(PolicySubscribeRequest) returns (stream PolicyUpdate);
+
+  // PublishPolicyUpdate injects a one-shot override (Kill Switch, emergency clamp).
+  rpc PublishPolicyUpdate(PolicyUpdate) returns (PolicyUpdateAck);
+}
+
+message PolicySubscribeRequest {
+  // Sidecar identity (typically AFP_LOCAL_DID or pod UID).
+  string sidecar_id = 1;
+  string namespace = 2;
+  // Last acknowledged revision for idempotent resume (0 = cold start).
+  uint64 last_revision = 3;
+}
+
+message PolicyUpdate {
+  string update_id = 1;
+  uint64 revision = 2;
+  PolicySource source = 3;
+  int64 issued_at_unix = 4;
+
+  // Emergency Kill Switch: all pre-flight checks return ISOLATED while active.
+  bool kill_switch_active = 5;
+
+  // When true, drop stream overlay and fall back to ConfigMap/fsnotify law only.
+  bool clear_overrides = 6;
+
+  // Optional overrides. Zero values mean "leave unchanged" unless clear_overrides is set.
+  double entropy_limit = 7;
+  uint32 max_recursion_depth = 8;
+  bool entropy_limit_set = 9;
+  bool max_recursion_depth_set = 10;
+}
+
+enum PolicySource {
+  POLICY_SOURCE_UNSPECIFIED = 0;
+  CRD_RECONCILER = 1;
+  OPERATOR_CLI = 2;
+  EMERGENCY_KILL_SWITCH = 3;
+}
+
+message PolicyUpdateAck {
+  bool accepted = 1;
+  string message = 2;
+  uint64 revision = 3;
+}

@@ -307,6 +307,8 @@ aegis-fabric/
 ├─ cmd/
 │  ├─ sidecar/           # Go data plane + UDS IPC server
 │  ├─ operator/          # AFPClusterPolicy → ConfigMap reconciler
+│  ├─ policy-controller/ # Phase 2 gRPC policy stream server
+│  ├─ policyctl/         # Kill Switch / emergency override CLI
 │  ├─ preflightclient/   # IPC blackbox CLI
 │  ├─ http_gateway/      # L7 wrapper demo
 │  └─ simulator/         # Monte Carlo engine
@@ -356,13 +358,30 @@ aegis-fabric/
 
 **Phase 1 — shipped:** TCP/LV data plane · ACC/FSM · SDK IPC · LangGraph adapter · K8s sidecar co-deploy · CRD operator · ConfigMap hot-reload · demo-agent image
 
-**Phase 2 — next (PR-6):** gRPC central control plane · `StreamPolicyUpdates` sub-second Kill Switch · policy push alongside ConfigMap law
+**Phase 2 — in progress (PR-6a shipped):** `StreamPolicyUpdates` proto · policy-controller · sidecar stream client · `policyctl` Kill Switch CLI
 
 | Phase 1 (law) | Phase 2 (injunction) |
 |---------------|----------------------|
-| `AFPClusterPolicy` CRD → Operator → ConfigMap | Control service streams policy deltas to sidecars |
-| `fsnotify` hot-reload (~60s kubelet sync) | Sub-second runtime Kill Switch / emergency entropy clamp |
-| Declarative threshold tuning | Operational incident response |
+| `AFPClusterPolicy` CRD → Operator → ConfigMap | `cmd/policy-controller` streams policy deltas to sidecars |
+| `fsnotify` hot-reload (~60s kubelet sync) | `policyctl --kill-switch` sub-second runtime clamp |
+| Declarative threshold tuning | `AFP_POLICY_CONTROLLER_ADDR` on sidecar |
+
+```bash
+# Terminal 1 — policy controller
+go run ./cmd/policy-controller
+
+# Terminal 2 — sidecar with stream client
+AFP_POLICY_CONTROLLER_ADDR=127.0.0.1:8090 AFP_IPC_SOCKET=/tmp/afp/agent.sock go run ./cmd/sidecar
+
+# Terminal 3 — flip Kill Switch
+go run ./cmd/policyctl --kill-switch
+go run ./cmd/preflightclient --recursion-depth 1   # expect ISOLATED immediately
+
+# Clear stream overlay, fall back to ConfigMap law
+go run ./cmd/policyctl --clear
+```
+
+**Phase 2 — next (PR-6b):** operator → controller bridge · mTLS · reconnect snapshot by revision
 
 **Hardening (parallel):** full cgroup reader · production crypto verification · iptables/eBPF socket hijack · publish images to GHCR
 

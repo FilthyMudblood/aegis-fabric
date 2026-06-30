@@ -31,6 +31,14 @@ func (sea *SingleExecutionAuthority) EvaluatePreFlight(traceID, targetDID string
 	_ = traceID
 	_ = targetDID
 
+	if sea.runtime.KillSwitchActive() {
+		telemetry.PreFlightActionTotal.WithLabelValues("isolated").Inc()
+		return &afpsdk.PreFlightResponse{
+			Action:      afpsdk.PreFlightResponse_ISOLATED,
+			BlockReason: "afp-core: emergency kill switch active, all intent generation halted",
+		}
+	}
+
 	if sea.entropy.ReportedRecursionDepth() > sea.runtime.MaxRecursionDepth() {
 		telemetry.PreFlightActionTotal.WithLabelValues("isolated").Inc()
 		return &afpsdk.PreFlightResponse{

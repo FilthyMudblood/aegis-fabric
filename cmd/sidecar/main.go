@@ -16,6 +16,7 @@ import (
 	"github.com/FilthyMudblood/aegis-fabric/internal/core"
 	"github.com/FilthyMudblood/aegis-fabric/internal/dataplane"
 	"github.com/FilthyMudblood/aegis-fabric/internal/ipc"
+	"github.com/FilthyMudblood/aegis-fabric/internal/policyplane"
 	"github.com/FilthyMudblood/aegis-fabric/internal/topology"
 	afpv1 "github.com/FilthyMudblood/aegis-fabric/pkg/protocol/v1" // 假定 protobuf 生成的包位置
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -95,6 +96,21 @@ func main() {
 		slog.Warn("policy hot-reload watcher disabled", "dir", policyDir, "error", err)
 	} else {
 		slog.Info("policy hot-reload watcher enabled", "dir", policyDir)
+	}
+
+	policyControllerAddr := os.Getenv("AFP_POLICY_CONTROLLER_ADDR")
+	if policyControllerAddr != "" {
+		policyNamespace := os.Getenv("AFP_NAMESPACE")
+		if policyNamespace == "" {
+			policyNamespace = "afp-system"
+		}
+		streamClient := policyplane.NewStreamClient(policyControllerAddr, localDID, policyNamespace, sea.RuntimePolicy())
+		go func() {
+			if err := streamClient.Run(ctx); err != nil && ctx.Err() == nil {
+				slog.Error("policy stream client stopped", "error", err, "controller", policyControllerAddr)
+			}
+		}()
+		slog.Info("policy stream client enabled", "controller", policyControllerAddr)
 	}
 
 	ipcSocket := os.Getenv("AFP_IPC_SOCKET")

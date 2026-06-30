@@ -1,15 +1,20 @@
-.PHONY: build docker run clean test demo-up demo-down demo-logs demo-snapshots demo-report sdk-proto sdk-test kind-quickstart demo-agent-docker
+.PHONY: build docker run clean test demo-up demo-down demo-logs demo-snapshots demo-report sdk-proto sdk-test kind-quickstart demo-agent-docker proto
 
 APP_NAME = afp-sidecar
 DEMO_AGENT_IMAGE = ghcr.io/filthymudblood/afp-demo-agent:latest
 VERSION = latest
 
-build:
+proto:
+	buf generate
+
+build: proto
 	go build -o bin/$(APP_NAME) ./cmd/sidecar/main.go
 	go build -o bin/egressclient ./cmd/egressclient/main.go
 	go build -o bin/testclient ./cmd/testclient/main.go
 	go build -o bin/preflightclient ./cmd/preflightclient/main.go
 	go build -o bin/operator ./cmd/operator/main.go
+	go build -o bin/policy-controller ./cmd/policy-controller/main.go
+	go build -o bin/policyctl ./cmd/policyctl/main.go
 
 docker:
 	docker build -t local/$(APP_NAME):$(VERSION) .

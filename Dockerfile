@@ -22,6 +22,8 @@ RUN go build -ldflags="-w -s" -o /bin/sidecar ./cmd/sidecar
 RUN go build -ldflags="-w -s" -o /bin/http_gateway ./cmd/http_gateway
 RUN go build -ldflags="-w -s" -o /bin/simulator ./cmd/simulator
 RUN go build -ldflags="-w -s" -o /bin/preflightclient ./cmd/preflightclient
+RUN go build -ldflags="-w -s" -o /bin/policy-controller ./cmd/policy-controller
+RUN go build -ldflags="-w -s" -o /bin/policyctl ./cmd/policyctl
 
 # ==========================================
 # Stage 2: Create the minimal production image
@@ -38,6 +40,8 @@ COPY --from=builder /bin/sidecar /usr/local/bin/sidecar
 COPY --from=builder /bin/http_gateway /usr/local/bin/http_gateway
 COPY --from=builder /bin/simulator /usr/local/bin/simulator
 COPY --from=builder /bin/preflightclient /usr/local/bin/preflightclient
+COPY --from=builder /bin/policy-controller /usr/local/bin/policy-controller
+COPY --from=builder /bin/policyctl /usr/local/bin/policyctl
 
 # 声明 HTTP 网关的默认端口
 EXPOSE 8082

@@ -67,6 +67,12 @@ spec:
           env:
             - name: AFP_BOOTSTRAP_PATH
               value: /etc/afp/bootstrap.json
+            - name: AFP_POLICY_CONTROLLER_ADDR
+              value: afp-policy-controller.afp-system.svc.cluster.local:8090
+            - name: AFP_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
           ports:
             - name: mesh-ingress
               containerPort: 8080

@@ -263,7 +263,7 @@ cd sdk/python && PYTHONPATH=. python examples/langgraph_planner.py --loop --inte
 ```text
 aegis-fabric/
 ├─ api/afp/v1/           # protobuf 契约
-├─ cmd/sidecar, operator, preflightclient
+├─ cmd/sidecar, operator, policy-controller, policyctl, preflightclient
 ├─ internal/controller/    # K8s Operator
 ├─ sdk/python/afp_sdk/   # Python SDK + LangGraph 适配器
 ├─ deploy/kubernetes/    # 生产 IaC
@@ -293,13 +293,21 @@ aegis-fabric/
 
 **Phase 1 — 已交付：** 数据面 · SDK IPC · LangGraph 适配器 · K8s Sidecar 伴生部署 · CRD Operator · ConfigMap 热加载 · demo-agent 镜像
 
-**Phase 2 — 下一步（PR-6）：** gRPC 中央控制面 · `StreamPolicyUpdates` 亚秒级 Kill Switch · 与 ConfigMap 法律并行的运行时推流
+**Phase 2 — 进行中（PR-6a 已交付）：** `StreamPolicyUpdates` 契约 · policy-controller · Sidecar 流式客户端 · `policyctl` Kill Switch CLI
 
 | Phase 1（法律） | Phase 2（指令） |
 |----------------|----------------|
-| CRD → Operator → ConfigMap | 控制服务向 Sidecar 推送策略增量 |
-| `fsnotify` 热加载（kubelet ~60s） | 亚秒级 Kill Switch / 紧急熵压钳制 |
-| 声明式阈值调优 | 运维事故响应 |
+| CRD → Operator → ConfigMap | `cmd/policy-controller` 向 Sidecar 推流 |
+| `fsnotify` 热加载（kubelet ~60s） | `policyctl --kill-switch` 亚秒级钳制 |
+| 声明式阈值调优 | Sidecar 配置 `AFP_POLICY_CONTROLLER_ADDR` |
+
+```bash
+go run ./cmd/policy-controller
+AFP_POLICY_CONTROLLER_ADDR=127.0.0.1:8090 go run ./cmd/sidecar
+go run ./cmd/policyctl --kill-switch
+```
+
+**Phase 2 — 下一步（PR-6b）：** Operator → Controller 桥接 · mTLS · 按 revision 断线续传
 
 **硬化（并行）：** cgroup 完整读取 · 生产级签名校验 · iptables/eBPF · 镜像发布至 GHCR
 
