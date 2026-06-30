@@ -59,7 +59,7 @@
 | **CrewAI / AutoGen adapters** | Same SDK pattern as LangGraph |
 | **ASP / signaling interop doc** | Position AFP relative to application-layer protocols |
 | **SLO templates** | `afp_preflight_actions_total` → Grafana dashboards + alert rules |
-| **Whitepaper v2.0 publication** | Zenodo / arXiv — see [`docs/whitepaper-v2/`](docs/whitepaper-v2/) |
+| **Whitepaper v2.0 publication** | Zenodo / arXiv (local drafts under `docs/`, gitignored) |
 
 ---
 
