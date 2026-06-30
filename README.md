@@ -358,32 +358,29 @@ aegis-fabric/
 
 **Phase 1 — shipped:** TCP/LV data plane · ACC/FSM · SDK IPC · LangGraph adapter · K8s sidecar co-deploy · CRD operator · ConfigMap hot-reload · demo-agent image
 
-**Phase 2 — in progress (PR-6a shipped):** `StreamPolicyUpdates` proto · policy-controller · sidecar stream client · `policyctl` Kill Switch CLI
+**Phase 2 — in progress (PR-6a + PR-6b shipped):** `StreamPolicyUpdates` · policy-controller · Operator→Controller bridge · SA TokenReview · revision replay · GHCR CI
 
 | Phase 1 (law) | Phase 2 (injunction) |
 |---------------|----------------------|
-| `AFPClusterPolicy` CRD → Operator → ConfigMap | `cmd/policy-controller` streams policy deltas to sidecars |
-| `fsnotify` hot-reload (~60s kubelet sync) | `policyctl --kill-switch` sub-second runtime clamp |
-| Declarative threshold tuning | `AFP_POLICY_CONTROLLER_ADDR` on sidecar |
+| `AFPClusterPolicy` CRD → Operator → ConfigMap | Operator also `PublishPolicyUpdate` → sub-second mesh |
+| `fsnotify` hot-reload (~60s kubelet sync) | Fail-safe fallback when controller offline |
+| Declarative threshold tuning | `policyctl --kill-switch` emergency clamp |
 
-```bash
-# Terminal 1 — policy controller
-go run ./cmd/policy-controller
-
-# Terminal 2 — sidecar with stream client
-AFP_POLICY_CONTROLLER_ADDR=127.0.0.1:8090 AFP_IPC_SOCKET=/tmp/afp/agent.sock go run ./cmd/sidecar
-
-# Terminal 3 — flip Kill Switch
-go run ./cmd/policyctl --kill-switch
-go run ./cmd/preflightclient --recursion-depth 1   # expect ISOLATED immediately
-
-# Clear stream overlay, fall back to ConfigMap law
-go run ./cmd/policyctl --clear
+```text
+kubectl apply AFPClusterPolicy
+  → Operator reconcile (ConfigMap + gRPC PublishPolicyUpdate)
+  → Policy Controller Hub → all Sidecars
 ```
 
-**Phase 2 — next (PR-6b):** operator → controller bridge · mTLS · reconnect snapshot by revision
+```bash
+make kind-quickstart   # full stack: sidecar + operator + demo-agent + controller
+```
 
-**Hardening (parallel):** full cgroup reader · production crypto verification · iptables/eBPF socket hijack · publish images to GHCR
+**GHCR images (auto-published on `main`):** `aegis-fabric-sidecar`, `aegis-fabric-operator`, `afp-demo-agent`
+
+**Phase 2 — next (PR-6c):** transport mTLS · operator status feedback · CRD delete propagation
+
+**Hardening (parallel):** full cgroup reader · production crypto verification · iptables/eBPF socket hijack
 
 ---
 
