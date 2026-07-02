@@ -13,7 +13,7 @@
 
 **Aegis Fabric Protocol (AFP)** is a Kubernetes-native **Consequence Persistence Layer (CPL)** — an out-of-band sidecar that kills planner dead-loops, intent bursts, and recursive delegation storms **before** they become irreversible network I/O.
 
-中文文档 · [`README.zh-CN.md`](README.zh-CN.md) · 白皮书 · [AFP Technical Whitepaper](https://zenodo.org/records/20674352)
+中文文档 · [`README.zh-CN.md`](README.zh-CN.md) · Whitepapers · **[v2 Protocol Edition](docs/whitepaper-v2/)** · [v1 on Zenodo](https://zenodo.org/records/20674352)
 
 ---
 
@@ -28,7 +28,7 @@ When an agent goes rogue:
 | **Planner dead-loop** | LangGraph keeps running; the process stays alive; no CrashLoopBackOff |
 | **Intent explosion** | 10,000 internal tasks never hit the network — firewalls see nothing |
 | **Context avalanche** | Memory pressure builds inside the pod; L7 gateways arrive too late |
-| **Application-layer ASP** | By the time HTTP returns `508`, the optimizer has already committed |
+| **Argent Signaling Protocol (ASP)** | By the time HTTP returns `508`, the optimizer has already committed |
 
 You do not have a networking problem. You have an **optimizer governance** problem.
 
@@ -45,6 +45,41 @@ Application intent  →  UDS PreFlightCheck  →  ALLOW | THROTTLE | ISOLATED
                               ↑
                     CRD law + gRPC injunction
 ```
+
+---
+
+## AFP vs Argent Signaling Protocol (ASP)
+
+**Short answer:** [Argent Signaling Protocol (ASP)](https://zenodo.org/records/20674352) and peers govern *how agents talk*. AFP governs *whether an intent may execute at all* — before packets, before HTTP, before the optimizer commits.
+
+ASP and similar application-layer stacks solve **traffic-light problems** for agents that are already at the intersection:
+
+- Discovery and capability exchange
+- Multi-turn session state and collaboration semantics
+- Negotiation of *exposed* intents between peers
+
+That is necessary infrastructure. It is **not sufficient** for physical safety inside a single pod:
+
+| Failure mode | ASP / in-band signaling | L7 gateway / WAF | **AFP (out-of-band CPL)** |
+|--------------|-------------------------|------------------|---------------------------|
+| Planner `while True` recursion | Session may still look valid | No HTTP yet to inspect | **Block at next node via UDS PreFlight** |
+| 10,000 internal `estimated_tasks` | No wire traffic to signal | Firewall sees nothing | **Entropy / depth limits before I/O** |
+| Context avalanche toward OOM | ACTIVE session, green health checks | Rate limit is QPS, not bytes×depth | **cgroup-aware EntropyMonitor** |
+| Emergency fleet clamp | Policy change is conversational | Per-route config push | **Kill Switch + CRD overlay in <1s** |
+
+```text
+         Collaboration semantics          Physical consequence
+         ───────────────────────          ──────────────────────
+         ASP · A2A protocols      +       AFP sidecar · PreFlightCheck
+         (who talks, about what)          (may this intent run?)
+                    │                              │
+                    └──────── complementary ───────┘
+                              not substitutes
+```
+
+**Design stance:** Signaling is not the enemy. Treating it as the *only* line of defense is the architectural mistake. AFP sits **below** application protocols — same relationship Envoy has to HTTP, or cgroups have to your process: out-of-band, microsecond, fail-closed.
+
+Deep dive: [Whitepaper v2 · Chapter 1 — The Optimization Crisis](docs/whitepaper-v2/chapter-01-optimization-crisis.md) · [full index](docs/whitepaper-v2/)
 
 ---
 
@@ -109,21 +144,21 @@ Path: `kubectl apply` → Operator → `PublishPolicyUpdate` → Policy Controll
 
 ```bash
 kubectl -n afp-system port-forward svc/afp-policy-controller 8090:8090 &
-go run ./cmd/policyctl --controller 127.0.0.1:8090 --kill-switch
+go run ./cmd/controlplane/policyctl --controller 127.0.0.1:8090 --kill-switch
 
 # Every pre-flight check returns ISOLATED immediately.
 # Clear overlay and fall back to ConfigMap law:
-go run ./cmd/policyctl --controller 127.0.0.1:8090 --clear
+go run ./cmd/controlplane/policyctl --controller 127.0.0.1:8090 --clear
 ```
 
 ### Local sandbox (no Kubernetes)
 
 ```bash
 # Terminal 1
-AFP_IPC_SOCKET=/tmp/afp/agent.sock go run ./cmd/sidecar
+AFP_IPC_SOCKET=/tmp/afp/agent.sock go run ./cmd/dataplane/sidecar
 
 # Terminal 2 — recursion breaker
-AFP_IPC_SOCKET=/tmp/afp/agent.sock go run ./cmd/preflightclient --recursion-depth 12
+AFP_IPC_SOCKET=/tmp/afp/agent.sock go run ./cmd/dataplane/preflightclient --recursion-depth 12
 
 # Terminal 3 — LangGraph annotate mode
 cd sdk/python && pip install grpcio protobuf langgraph -q
@@ -162,7 +197,7 @@ flowchart TB
 | Layer | Role | Key artifacts |
 |-------|------|---------------|
 | **L1 Application** | Govern intent before tool storms | `sdk/python/afp_sdk`, LangGraph adapter |
-| **L2 Data Plane** | Microsecond pre-flight enforcement | `cmd/sidecar`, UDS IPC |
+| **L2 Data Plane** | Microsecond pre-flight enforcement | `cmd/dataplane/sidecar`, UDS IPC |
 | **L3 Control Plane** | Declarative law + runtime injunction | CRD, Operator, Policy Controller |
 
 ### Dual-Source Policy Merge
@@ -258,23 +293,28 @@ Monte Carlo: **1,000 runs × 500 nodes × 5% malicious × 100 epochs**
 | **AFP** | **500.00** (100%) |
 
 ```bash
-go run ./cmd/simulator && make demo-report
+go run ./cmd/demo/simulator && make demo-report
 ```
 
 ---
 
 ## Project Layout
 
+See **[ARCHITECTURE.md](ARCHITECTURE.md)** for the protocol specification (L0–L5 stack, CPL, SEA, dual-path enforcement).  
+See **[CODEBASE.md](CODEBASE.md)** for the repository file map. Summary:
+
 ```text
 aegis-fabric/
-├─ api/afp/v1/              # protobuf contracts
-├─ cmd/sidecar              # data plane + UDS IPC
-├─ cmd/operator             # CRD → ConfigMap + gRPC publish
-├─ cmd/policy-controller    # StreamPolicyUpdates hub
-├─ cmd/policyctl            # Kill Switch CLI
-├─ sdk/python/afp_sdk/      # Python SDK + LangGraph adapter
-├─ deploy/kubernetes/       # production manifests
-├─ Dockerfile.demo-agent    # zero-setup demo image
+├─ ARCHITECTURE.md              # protocol spec (CPL · SEA · CVP · PreFlight)
+├─ api/afp/v1/                    # protobuf contracts
+├─ cmd/
+│  ├─ dataplane/                  # sidecar, preflightclient, egressclient
+│  ├─ controlplane/               # operator, policy-controller, policyctl
+│  └─ demo/                       # simulator, http_gateway, harnesses
+├─ internal/                      # dataplane, ipc, policyplane, controller, …
+├─ sdk/python/afp_sdk/            # Python SDK + LangGraph adapter
+├─ deploy/kubernetes/             # production manifests
+├─ Dockerfile.demo-agent          # zero-setup demo image
 └─ scripts/kind-quickstart.sh
 ```
 
@@ -300,7 +340,7 @@ Key series: `afp_preflight_actions_total`, `afp_ingress_actions_total`
 | **Phase 1** | Sidecar data plane · SDK IPC · LangGraph adapter · K8s co-deploy · CRD Operator · ConfigMap hot-reload · demo-agent |
 | **Phase 2** | `StreamPolicyUpdates` · Operator→Controller bridge · SA TokenReview · revision replay · **mTLS** · **status writeback** · **delete propagation** · GHCR CI |
 
-**Frozen after PR-6c.** Production hardening: [`ROADMAP.md`](ROADMAP.md) · Next milestone: [Whitepaper v2.0](https://zenodo.org/records/20674352) (draft in progress)
+**Frozen after PR-6c.** Production hardening: [`ROADMAP.md`](ROADMAP.md) · Theory: [Whitepaper v2.0 Protocol Edition](docs/whitepaper-v2/) · v1 archive: [Zenodo](https://zenodo.org/records/20674352)
 
 ---
 

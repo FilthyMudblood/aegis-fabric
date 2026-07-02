@@ -31,7 +31,7 @@
 |------|-----|-------|
 | **iptables / eBPF socket hijack** | Egress currently trust-based on localhost | `NET_ADMIN` hook already reserved in manifests |
 | **Real cgroup / memory sampling** | Entropy uses mock/simplified providers | Wire `/sys/fs/cgroup` for OOM-adjacent pressure |
-| **Ingress → agent forwarding** | Sidecar accepts TCP but does not proxy to agent runtime | Complete `io.Copy` path in `cmd/sidecar` |
+| **Ingress → agent forwarding** | Sidecar accepts TCP but does not proxy to agent runtime | Complete `io.Copy` path in `cmd/dataplane/sidecar` |
 
 ### P2 — Control plane & ops
 
@@ -57,9 +57,9 @@
 | Item | Description |
 |------|-------------|
 | **CrewAI / AutoGen adapters** | Same SDK pattern as LangGraph |
-| **ASP / signaling interop doc** | Position AFP relative to application-layer protocols |
+| **Argent Signaling Protocol (ASP) interop doc** | Position AFP relative to ASP and other application-layer protocols |
 | **SLO templates** | `afp_preflight_actions_total` → Grafana dashboards + alert rules |
-| **Whitepaper v2.0 publication** | Zenodo / arXiv (local drafts under `docs/`, gitignored) |
+| **Whitepaper v2.0 Zenodo DOI** | Protocol Edition in repo: [`docs/whitepaper-v2/`](docs/whitepaper-v2/) · v1: [Zenodo](https://zenodo.org/records/20674352) |
 
 ---
 
