@@ -64,7 +64,7 @@ def sidecar_socket() -> str:
     env.update(
         {
             "AFP_IPC_SOCKET": socket_path,
-            "AFP_BOOTSTRAP_PATH": str(REPO_ROOT / "cmd/sidecar/bootstrap.json"),
+            "AFP_BOOTSTRAP_PATH": str(REPO_ROOT / "cmd/dataplane/sidecar/bootstrap.json"),
             "AFP_INGRESS_ADDR": f":{ingress_port}",
             "AFP_EGRESS_ADDR": f"127.0.0.1:{egress_port}",
             "AFP_METRICS_ADDR": f"127.0.0.1:{metrics_port}",
@@ -72,7 +72,7 @@ def sidecar_socket() -> str:
     )
 
     proc = subprocess.Popen(
-        ["go", "run", "./cmd/sidecar"],
+        ["go", "run", "./cmd/dataplane/sidecar"],
         cwd=REPO_ROOT,
         env=env,
         stdout=subprocess.DEVNULL,

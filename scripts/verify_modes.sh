@@ -7,8 +7,8 @@ echo "========================================================"
 
 # 编译最新二进制
 echo "[1/4] Compiling binaries..."
-go build -o bin/sidecar ./cmd/sidecar
-go build -o bin/modetester ./cmd/modetester
+go build -o bin/sidecar ./cmd/dataplane/sidecar
+go build -o bin/modetester ./cmd/demo/modetester
 
 # ---------------------------------------------------------
 # Test Case A: Enterprise Mesh Mode

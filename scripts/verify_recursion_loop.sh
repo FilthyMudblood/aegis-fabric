@@ -6,9 +6,9 @@ echo " AFP Recursion Breaker Validation"
 echo "========================================================"
 
 mkdir -p bin
-go build -o bin/sidecar ./cmd/sidecar
-go build -o bin/egressclient ./cmd/egressclient
-go build -o bin/looptester ./cmd/looptester
+go build -o bin/sidecar ./cmd/dataplane/sidecar
+go build -o bin/egressclient ./cmd/dataplane/egressclient
+go build -o bin/looptester ./cmd/demo/looptester
 
 export AFP_METRICS_ADDR="127.0.0.1:19090"
 ./bin/sidecar > recursion_test.log 2>&1 &

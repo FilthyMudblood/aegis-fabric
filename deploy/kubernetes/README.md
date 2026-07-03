@@ -68,7 +68,7 @@ kubectl apply -f deploy/kubernetes/crd/afpclusterpolicy.yaml
 kubectl apply -f deploy/kubernetes/examples/afpclusterpolicy-enterprise.yaml
 
 # out-of-cluster dev loop
-go run ./cmd/operator
+go run ./cmd/controlplane/operator
 
 # or in-cluster
 kubectl apply -f deploy/kubernetes/operator-deployment.yaml
@@ -109,7 +109,7 @@ kubectl get afpclusterpolicy enterprise-default
 
 ```bash
 kubectl -n afp-system port-forward svc/afp-policy-controller 8090:8090
-go run ./cmd/policyctl --controller 127.0.0.1:8090 --kill-switch
+go run ./cmd/controlplane/policyctl --controller 127.0.0.1:8090 --kill-switch
 ```
 
 ## Demo Agent

@@ -53,9 +53,9 @@ func main() {
 
 	bootstrapCfg, err := config.LoadBootstrapConfig(cfgPath)
 	if err != nil {
-		// Support running from project root via `go run ./cmd/sidecar`.
+		// Support running from project root via `go run ./cmd/dataplane/sidecar`.
 		if cfgPath == "bootstrap.json" {
-			cfgPath = "cmd/sidecar/bootstrap.json"
+			cfgPath = "cmd/dataplane/sidecar/bootstrap.json"
 			bootstrapCfg, err = config.LoadBootstrapConfig(cfgPath)
 		}
 		if err != nil {

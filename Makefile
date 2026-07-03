@@ -4,17 +4,22 @@ APP_NAME = afp-sidecar
 DEMO_AGENT_IMAGE = ghcr.io/filthymudblood/afp-demo-agent:latest
 VERSION = latest
 
+# --- paths (grouped cmd layout) ---
+CMD_DP = ./cmd/dataplane
+CMD_CP = ./cmd/controlplane
+CMD_DEMO = ./cmd/demo
+
 proto:
 	buf generate
 
 build: proto
-	go build -o bin/$(APP_NAME) ./cmd/sidecar/main.go
-	go build -o bin/egressclient ./cmd/egressclient/main.go
-	go build -o bin/testclient ./cmd/testclient/main.go
-	go build -o bin/preflightclient ./cmd/preflightclient/main.go
-	go build -o bin/operator ./cmd/operator/main.go
-	go build -o bin/policy-controller ./cmd/policy-controller/main.go
-	go build -o bin/policyctl ./cmd/policyctl/main.go
+	go build -o bin/sidecar $(CMD_DP)/sidecar
+	go build -o bin/egressclient $(CMD_DP)/egressclient
+	go build -o bin/testclient $(CMD_DP)/testclient
+	go build -o bin/preflightclient $(CMD_DP)/preflightclient
+	go build -o bin/operator $(CMD_CP)/operator
+	go build -o bin/policy-controller $(CMD_CP)/policy-controller
+	go build -o bin/policyctl $(CMD_CP)/policyctl
 
 docker:
 	docker build -t local/$(APP_NAME):$(VERSION) .
@@ -26,7 +31,7 @@ operator-docker:
 	docker build -f Dockerfile.operator -t ghcr.io/filthymudblood/aegis-fabric-operator:latest .
 
 run: build
-	./bin/$(APP_NAME)
+	./bin/sidecar
 
 test:
 	go test ./... -v

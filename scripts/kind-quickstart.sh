@@ -82,7 +82,7 @@ Watch the demo agent loop:
   kubectl -n ${NAMESPACE} logs -f ${POD} -c agent-core
 
 Re-run policy operator / inspect hot-reload:
-  go run ./cmd/operator
+  go run ./cmd/controlplane/operator
   kubectl -n ${NAMESPACE} get configmap afp-sidecar-config -o yaml
   kubectl -n ${NAMESPACE} exec ${POD} -c afp-sidecar -- ls -la /etc/afp/policy
 

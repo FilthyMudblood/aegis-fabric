@@ -6,7 +6,7 @@ OUT_DIR="${1:-${ROOT}/.afp-tls}"
 NAMESPACE="${AFP_NAMESPACE:-afp-system}"
 
 mkdir -p "${OUT_DIR}"
-go run "${ROOT}/cmd/gencerts" --out "${OUT_DIR}"
+go run "${ROOT}/cmd/controlplane/gencerts" --out "${OUT_DIR}"
 
 kubectl create secret generic afp-policy-tls \
   --namespace "${NAMESPACE}" \

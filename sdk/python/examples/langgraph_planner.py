@@ -2,7 +2,7 @@
 Minimal LangGraph planner loop demonstrating AFP pre-flight governance.
 
 Run with sidecar IPC available:
-  AFP_IPC_SOCKET=/tmp/afp/agent.sock go run ./cmd/sidecar
+  AFP_IPC_SOCKET=/tmp/afp/agent.sock go run ./cmd/dataplane/sidecar
   cd sdk/python && PYTHONPATH=. python examples/langgraph_planner.py
 
 Kubernetes demo agent (looping):
