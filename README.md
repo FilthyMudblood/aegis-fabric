@@ -60,6 +60,35 @@ Per-request gateways **forget**. Optimizers evade by splitting work into syntact
 | **Physical malice** (open mesh) | Peer flooding, hit-and-run strangers—CVP, stranger tax, gossip | Semantic intent content |
 | **Allowed stacking** | `Planner → A → B → C` within depth/entropy policy | Business correctness of each hop |
 
+### In production: episodic or structural?
+
+| Risk class | Enterprise multi-agent | Open P2P mesh |
+|------------|------------------------|---------------|
+| **Out-of-control stacking** | **Common** — decomposition and delegation are default optimizer behavior, not rare bugs | **Common** — contagion amplifies local runaway |
+| **Physical malice** | **Uncommon** — mostly misconfig, abuse, or prompt injection; not daily adversarial peers | **Material threat** — strangers, floods, hit-and-run |
+
+Out-of-control shows up two ways: **episodic spikes** (one bad replan loop, one burst) and **structural drift** (always-on agent fleets leaking cost without a runtime brake). AFP targets the **scale law of stacking**—the more hops, the sooner physics breaks—not horror stories about omnipresent attackers.
+
+> **Honest pitch:** You do not need AFP because agents are "evil every day." You need it because **stacked optimizers routinely outrun retries, token dashboards, and per-request limits.**
+
+### Why retries, token caps, and monitoring aren't enough
+
+`max_retries`, `recursion_limit`, and token budgets are **necessary telemetry**. They are **not sufficient brakes** for multi-agent stacking:
+
+| Approach | Helps with | Structural gap |
+|----------|------------|----------------|
+| **Retry / loop counters** | Single-graph loops in one process | Resets per session; blind to cross-agent chains; misses burst *inside* one "retry" |
+| **Token / cost caps** | Billing stop-loss after spend | **Post-hoc** — measures burn after steps commit; silent internal queues may never surface as tokens yet |
+| **Metrics & alerts** | Incident detection | **Observe → alert → react** — at least one cycle late (Lemma 1.1); no persistent peer-level consequence |
+| **Framework guardrails** | Dev-declared limits | In-process, non-portable, not enforceable at mesh ingress |
+
+```text
+Monitoring:   step committed → count tokens → alert → stop (this run)
+CPL:          before next step → PreFlight → THROTTLED/ISOLATED (remembered)
+```
+
+**Complement, not replace:** keep token budgets and dashboards. Add CPL where optimizers **commit**—with consequences that **persist** across hops and sessions.
+
 ---
 
 ## The Problem

@@ -64,6 +64,37 @@ CPL-centric:      consequence(agent) → persist → apply(agent, epochₜ₊₁
 
 **Corollary 1.0:** Blocking `A → D → F → A` is **recursion containment**, not a ban on multi-agent collaboration. Blocking a polite peer at `CVP < 0.3` is **coordination bankruptcy**, not a judgment on conversational tone.
 
+### 1.0.3 Production frequency — episodic spikes vs structural drift
+
+| Risk | Enterprise multi-agent | Open P2P mesh |
+|------|------------------------|---------------|
+| **Out-of-control stacking** | **Common** — default optimizer behavior (decompose, delegate, replan) | **Common** — local runaway plus contagion |
+| **Physical malice** | **Uncommon** as peer adversaries — abuse/misconfig dominates | **Material** — strangers, floods, hit-and-run |
+
+Failures appear as **episodic incidents** (one loop, one burst) or **structural cost drift** (always-on fleets without runtime brakes). AFP is aimed at the **scale law of stacking**, not a claim that agents are malicious every day.
+
+> **Honest claim:** Multi-agent systems need runtime law because stacked optimizers **outrun** retries, token dashboards, and ephemeral limits—not because attackers are omnipresent.
+
+### 1.0.4 Why retries, token budgets, and observability are insufficient
+
+Teams routinely deploy `max_retries`, `recursion_limit`, LangGraph caps, and token budgets. These are **necessary**. They are **not sufficient** as the sole coordination runtime:
+
+| Pattern | Mechanism | Structural failure |
+|---------|-----------|-------------------|
+| **Retry / loop counters** | Cap iterations in one graph | Resets per session/request; no cross-agent chain memory; one "retry" may hide exponential internal fan-out |
+| **Token / cost budgets** | Stop after spend threshold | **Post-commit accounting** — tokens accrue after steps execute; internal queues may grow with zero wire traffic first |
+| **Metrics & alerting** | Prometheus, cost dashboards | **Observability lag** (Lemma 1.1): detect after physical consequence; alerts are not gates; no persistent FSM |
+| **In-process guardrails** | Prompts, framework middleware | Bypassable, non-portable, not peer-enforceable at ingress |
+
+**Lemma 1.3 (Telemetry ≠ brake):** Measurement that reports after commit cannot substitute for adjudication **before** commit with **persistent** consequences.
+
+```text
+Observability path:  execute → measure tokens → alert → stop (this episode)
+CPL path:            probe → PERMISSIVE | THROTTLED | ISOLATED → persist → apply next epoch
+```
+
+**Corollary 1.1:** Token dashboards are the **fuel gauge**. CPL is the **brake with memory**. Fleets need both; conflating them exports stacking risk to the next scheduling epoch.
+
 ---
 
 ## 1.1 Manifesto
@@ -187,13 +218,14 @@ Classical rate limits measure **events per second**. Optimizer catastrophes scal
 
 ## 1.5 Why the Answer Must Be Physical and Out-of-Band
 
-Industry has converged on three insufficient patterns:
+Industry has converged on four insufficient patterns:
 
 | Pattern | Mechanism | Structural failure |
 |---------|-----------|-------------------|
 | **In-band gateways** | Inspect emitted HTTP/RPC | Intent already executed locally |
 | **Semantic protocols** | Negotiate exposed intents | Cannot constrain un-exposed planning |
 | **In-process guardrails** | Prompts, max-iteration counters | Bypassable, non-portable, non-peer-enforceable |
+| **Observability & budgets** | Retries, token caps, metrics/alerts | Post-commit, ephemeral, no cross-hop persistent consequence (§1.0.4) |
 
 AFP proposes a fourth category: **out-of-band physical constraint**.
 
@@ -220,7 +252,7 @@ Industry discourse collapses **agent communication** into one bucket. AFP requir
 | **B · Data passing** | Structured payloads (`task_result`, `confidence`, …) over gRPC, Kafka, MCP, Event Grid | Existing transports |
 | **C · Runtime signaling** | Eligibility probes, attestation frames, persistent throttle/isolation state | **AFP (L2–L4)** |
 
-**Lemma 1.2 (Communication partition):** Confusing A, B, and C under a single "agent protocol" exports physical risk to the transport layer and semantic risk to the consequence layer.
+**Lemma 1.4 (Communication partition):** Confusing A, B, and C under a single "agent protocol" exports physical risk to the transport layer and semantic risk to the consequence layer.
 
 AFP's formal split is **semantic collaboration (L5)** versus **physical consequence (L2–L4)**—Theorem 1.1. The A/B/C partition is the operational refinement: AFP does not specify chat (A) or business schemas (B); it supplies runtime law (C) as **PreFlight**, **GovernanceHeader**, and **persistent FSM consequences**.
 

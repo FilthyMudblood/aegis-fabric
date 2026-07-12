@@ -13,7 +13,7 @@ This directory holds **narrative drafts** (theory, proofs, chapter prose). Do no
 | File | Role |
 |------|------|
 | [../../ARCHITECTURE.md](../../ARCHITECTURE.md) | **Protocol spec** — Mermaid stack, formal objects, code map |
-| [chapter-01-optimization-crisis.md](./chapter-01-optimization-crisis.md) | Ch.1 v0.2 — §1.0 Market Gap, §1.0.2 agent stacking |
+| [chapter-01-optimization-crisis.md](./chapter-01-optimization-crisis.md) | Ch.1 v0.2 — §1.0 gap, stacking, production frequency, observability limits |
 | [chapter-02-consequence-persistence-layer.md](./chapter-02-consequence-persistence-layer.md) | Ch.2 draft v0.2 |
 | [chapter-03-pre-intent-enforcement.md](./chapter-03-pre-intent-enforcement.md) | Ch.3 draft v0.2 |
 | [chapter-04-open-network-topology.md](./chapter-04-open-network-topology.md) | Ch.4 draft v0.2 |
