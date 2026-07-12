@@ -37,6 +37,33 @@ One protocol (**L2 SEA + ACC + FSM**), two deployment profiles:
 
 > *Transport is solved. Semantics are evolving. **Runtime coordination law is not.** AFP supplies that law—with enforceable physics.*
 
+### 1.0.2 Agent stacking — why persistence matters
+
+**Agent stacking** is the dominant failure geometry in multi-agent systems: `Planner → A → B → C → …`, optionally closing as `A → D → F → A`. Harm compounds across hops—recursion depth, in-process queue pressure, context bytes, and (in open meshes) peer contagion:
+
+```text
+Stack risk  ≈  depth × branching × context × peer_contagion
+```
+
+Each hop may present a **syntactically valid** session or RPC while the **trajectory** becomes physically unsustainable. Per-request gateways forget; optimizers fragment work across micro-steps to evade ephemeral limits.
+
+**CPL persistence** binds consequences to `agent` / `peer_id` identity:
+
+```text
+Request-centric:  verdict(reqᵢ) → forget → verdict(reqᵢ₊₁)
+CPL-centric:      consequence(agent) → persist → apply(agent, epochₜ₊₁)
+```
+
+**Definition 1.0 (Stacking target).** AFP's primary adversary in enterprise deployments is **out-of-control stacking**—runaway optimization trajectories. In open-exchange deployments, add **physically malicious stacking**—peers that export destabilizing load or hit-and-run without stake.
+
+| Class | Examples | AFP mechanism | Out of scope |
+|-------|----------|---------------|--------------|
+| **Out-of-control** | Intent burst, recursion loop, context avalanche | PreFlight, depth breaker, entropy circuit breaker, persistent FSM | Semantic task correctness |
+| **Physical malice** | Peer flood, stranger hit-and-run, CVP collapse | GovernanceHeader, CVP floor, stranger tax, gossip quarantine | Moral/semantic intent classification |
+| **Permitted stacking** | `Planner → A → B → C` within policy | PERMISSIVE path when physics stay sub-critical | Workflow approval, org-chart routing |
+
+**Corollary 1.0:** Blocking `A → D → F → A` is **recursion containment**, not a ban on multi-agent collaboration. Blocking a polite peer at `CVP < 0.3` is **coordination bankruptcy**, not a judgment on conversational tone.
+
 ---
 
 ## 1.1 Manifesto

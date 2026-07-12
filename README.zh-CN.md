@@ -37,6 +37,22 @@ Multi-agent 栈解决了**规划**（LangGraph、CrewAI）和**传输**（gRPC�
 
 *一套协议，两种 profile：* **closed mesh**（mTLS，以 PreFlight 为主）与 **open exchange**（GovernanceHeader、CVP、陌生人税）。见[白皮书第 4 章](docs/whitepaper-v2/chapter-04-open-network-topology.md)。
 
+### 为什么 Agent 堆叠需要「有记忆」
+
+**Agent 堆叠**——`Planner → A → B → C → …`——风险随跳数复利。每一步单独看可能都「合法」，但深度、队列压力、上下文在累积，不一定表现为某一条「坏消息」：
+
+```text
+堆叠风险  ≈  深度 × 分支 × 上下文 × peer 传染
+```
+
+按请求放行的网关会**遗忘**。优化器会把工作拆成无数语法合法的小步来绕过。CPL 把后果绑在 **agent/peer 身份**上，堆叠失控无法靠「每一跳都很礼貌」来洗白。
+
+| 对象 | CPL 管什么 | CPL 不判断什么 |
+|------|------------|----------------|
+| **失控** | 递归环、意图爆发、上下文雪崩逼近 OOM | — |
+| **物理恶意**（开放网） | peer 洪水、hit-and-run 陌生人——CVP、陌生人税、gossip | 消息内容的语义善恶 |
+| **允许的堆叠** | 策略内的 `Planner → A → B → C` | 每一步业务上是否「该做」 |
+
 ---
 
 ## 痛点
@@ -117,6 +133,8 @@ AFP **不判断** intent 在语义或道德上是否「坏」。它拦截的是*
 | 上下文雪崩逼近 OOM | 内存 + 上下文字节 → **THROTTLED** / **ISOLATED** |
 
 摩擦在**提交之前**施加，且**后果可持久**——失控轨迹无法靠拆成语法合法的小步来逃避。
+
+**主要对象是堆叠失控**，不是语义上的「坏 intent」。企业网主要是自家 planner 链失控；开放 P2P 网另加**物理恶意 peer**（过载导出、传染）——由 CVP 与入站法则 containment，而非读懂消息含义。
 
 理论全文：[白皮书 v2 · 第 2 章 CPL](docs/whitepaper-v2/chapter-02-consequence-persistence-layer.md) · [第 3 章 意图前执法](docs/whitepaper-v2/chapter-03-pre-intent-enforcement.md)
 

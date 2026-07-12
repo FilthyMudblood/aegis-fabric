@@ -1,12 +1,15 @@
+
+
 # Aegis Fabric Protocol (AFP)
 
-[![Docker Publish](https://github.com/FilthyMudblood/aegis-fabric/actions/workflows/docker-publish.yml/badge.svg)](https://github.com/FilthyMudblood/aegis-fabric/actions/workflows/docker-publish.yml)
-[![GHCR Sidecar](https://img.shields.io/badge/GHCR-sidecar-2496ED?logo=docker&logoColor=white)](https://ghcr.io/filthymudblood/aegis-fabric-sidecar)
-[![GHCR Operator](https://img.shields.io/badge/GHCR-operator-2496ED?logo=docker&logoColor=white)](https://ghcr.io/filthymudblood/aegis-fabric-operator)
-[![GHCR Demo Agent](https://img.shields.io/badge/GHCR-demo--agent-2496ED?logo=docker&logoColor=white)](https://ghcr.io/filthymudblood/afp-demo-agent)
-[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
+[Docker Publish](https://github.com/FilthyMudblood/aegis-fabric/actions/workflows/docker-publish.yml)
+[GHCR Sidecar](https://ghcr.io/filthymudblood/aegis-fabric-sidecar)
+[GHCR Operator](https://ghcr.io/filthymudblood/aegis-fabric-operator)
+[GHCR Demo Agent](https://ghcr.io/filthymudblood/afp-demo-agent)
+[License](LICENSE)
 
 ### **The Physical Brakes for Multi-Agent Systems**
+
 *Enterprise today · P2P-ready by protocol*
 
 > **"TCP governs packets. AFP governs optimizers."**
@@ -14,7 +17,7 @@
 
 **Aegis Fabric Protocol (AFP)** is a **Consequence Persistence Layer (CPL)** — the missing runtime brake between *agents can talk* and *the mesh survives*. Reference deployments use a Kubernetes-native sidecar; the **protocol** is the same for enterprise multi-agent and open P2P agent meshes.
 
-中文文档 · [`README.zh-CN.md`](README.zh-CN.md) · Whitepapers · **[v2 Protocol Edition](docs/whitepaper-v2/)** · [v1 on Zenodo](https://zenodo.org/records/20674352)
+中文文档 · `[README.zh-CN.md](README.zh-CN.md)` · Whitepapers · **[v2 Protocol Edition](docs/whitepaper-v2/)** · [v1 on Zenodo](https://zenodo.org/records/20674352)
 
 ### The gap
 
@@ -22,20 +25,40 @@ Multi-agent stacks solve **planning** (LangGraph, CrewAI) and **messaging** (gRP
 
 > *May this step execute—and do consequences persist when it does not?*
 
-| Layer | Status |
-|-------|--------|
-| Transport | Solved — bytes move |
-| Semantic collaboration | Evolving — ASP, A2A, MCP |
+
+| Layer                        | Status                           |
+| ---------------------------- | -------------------------------- |
+| Transport                    | Solved — bytes move              |
+| Semantic collaboration       | Evolving — ASP, A2A, MCP         |
 | **Coordination runtime law** | **Missing — AFP fills this gap** |
 
-| Mode | What AFP answers |
-|------|------------------|
-| **Enterprise multi-agent** | Stop runaway planners *inside* the pod—before OOM, token burn, and retry cascades |
-| **P2P / open agent mesh** | Under distrust: admit only physically viable peers; quarantine toxic nodes before contagion spreads |
+
+
+| Mode                       | What AFP answers                                                                                    |
+| -------------------------- | --------------------------------------------------------------------------------------------------- |
+| **Enterprise multi-agent** | Stop runaway planners *inside* the pod—before OOM, token burn, and retry cascades                   |
+| **P2P / open agent mesh**  | Under distrust: admit only physically viable peers; quarantine toxic nodes before contagion spreads |
+
 
 > *Agents learned to talk. Networks learned to route. **Nobody brakes the optimizer before it commits—and remembers when it failed.***
 
 *One protocol, two profiles:* **closed mesh** (mTLS, PreFlight-first) and **open exchange** (GovernanceHeader, CVP, stranger tax). See [Whitepaper Ch.4](docs/whitepaper-v2/chapter-04-open-network-topology.md).
+
+### Why agent stacking needs memory
+
+**Agent stacking**—`Planner → A → B → C → …`—compounds risk across hops. Each step may look locally valid while depth, queue pressure, and context grow without a single "bad message":
+
+```text
+Stack risk  ≈  depth × branching × context × peer contagion
+```
+
+Per-request gateways **forget**. Optimizers evade by splitting work into syntactically valid micro-steps. CPL binds consequences to **agent/peer identity** so stacked runaway cannot reset by staying polite per hop.
+
+| Target | What CPL addresses | What CPL does not judge |
+|--------|-------------------|-------------------------|
+| **Out-of-control** | Recursion loops, intent bursts, context avalanche toward OOM | — |
+| **Physical malice** (open mesh) | Peer flooding, hit-and-run strangers—CVP, stranger tax, gossip | Semantic intent content |
+| **Allowed stacking** | `Planner → A → B → C` within depth/entropy policy | Business correctness of each hop |
 
 ---
 
@@ -45,12 +68,14 @@ Your AI agents are not HTTP clients. They are **active optimizers** — they pla
 
 When an agent goes rogue:
 
-| Symptom | Why traditional infra fails |
-|---------|----------------------------|
-| **Planner dead-loop** | LangGraph keeps running; the process stays alive; no CrashLoopBackOff |
-| **Intent explosion** | 10,000 internal tasks never hit the network — firewalls see nothing |
-| **Context avalanche** | Memory pressure builds inside the pod; L7 gateways arrive too late |
-| **Argent Signaling Protocol (ASP)** | By the time HTTP returns `508`, the optimizer has already committed |
+
+| Symptom                             | Why traditional infra fails                                           |
+| ----------------------------------- | --------------------------------------------------------------------- |
+| **Planner dead-loop**               | LangGraph keeps running; the process stays alive; no CrashLoopBackOff |
+| **Intent explosion**                | 10,000 internal tasks never hit the network — firewalls see nothing   |
+| **Context avalanche**               | Memory pressure builds inside the pod; L7 gateways arrive too late    |
+| **Argent Signaling Protocol (ASP)** | By the time HTTP returns `508`, the optimizer has already committed   |
+
 
 You do not have a networking problem. You have an **optimizer governance** problem.
 
@@ -74,11 +99,13 @@ Application intent  →  UDS PreFlightCheck  →  ALLOW | THROTTLE | ISOLATED
 
 ### Essence
 
-| Dimension | What CPL is |
-|-----------|-------------|
-| **Where** | At the **execution boundary** (planner ↔ sidecar)—out-of-band, not inside HTTP/ASP |
-| **When** | **Pre-intent**—before tool calls, delegation, or outbound I/O |
+
+| Dimension       | What CPL is                                                                          |
+| --------------- | ------------------------------------------------------------------------------------ |
+| **Where**       | At the **execution boundary** (planner ↔ sidecar)—out-of-band, not inside HTTP/ASP   |
+| **When**        | **Pre-intent**—before tool calls, delegation, or outbound I/O                        |
 | **What sticks** | `PERMISSIVE` · `THROTTLED` · `ISOLATED` survive scheduling epochs until FSM recovery |
+
 
 ```text
 Request ends  ≠  consequence clears
@@ -112,13 +139,17 @@ PERMISSIVE | THROTTLED + delay | ISOLATED
 
 AFP does **not** judge whether an intent is morally or semantically "bad." It blocks **physically unsustainable** optimizer behavior:
 
-| Pathology | CPL response |
-|-----------|----------------|
-| Recursive delegation loop (`A→D→F→A`) | `maxRecursionDepth` → **ISOLATED** |
-| Intent burst (10k internal tasks) | Entropy / burst pressure → **THROTTLED** or circuit breaker |
-| Context avalanche toward OOM | Memory + context bytes → **THROTTLED** / **ISOLATED** |
+
+| Pathology                             | CPL response                                                |
+| ------------------------------------- | ----------------------------------------------------------- |
+| Recursive delegation loop (`A→D→F→A`) | `maxRecursionDepth` → **ISOLATED**                          |
+| Intent burst (10k internal tasks)     | Entropy / burst pressure → **THROTTLED** or circuit breaker |
+| Context avalanche toward OOM          | Memory + context bytes → **THROTTLED** / **ISOLATED**       |
+
 
 Friction applies **before commit**, with **persistent consequences**—so runaway trajectories cannot evade by splitting into syntactically valid micro-steps.
+
+**Primary target is out-of-control stacking**, not semantic "bad intent." In enterprise meshes, that means your own planner chain runaway. In open P2P meshes, add **physically malicious peers**—overload export, contagion—contained by CVP and ingress law, not by reading message meaning.
 
 Theory: [Whitepaper v2 · Chapter 2 — CPL](docs/whitepaper-v2/chapter-02-consequence-persistence-layer.md) · [Chapter 3 — Pre-Intent](docs/whitepaper-v2/chapter-03-pre-intent-enforcement.md)
 
@@ -136,12 +167,14 @@ ASP and similar application-layer stacks solve **traffic-light problems** for ag
 
 That is necessary infrastructure. It is **not sufficient** for physical safety inside a single pod:
 
-| Failure mode | ASP / in-band signaling | L7 gateway / WAF | **AFP (out-of-band CPL)** |
-|--------------|-------------------------|------------------|---------------------------|
-| Planner `while True` recursion | Session may still look valid | No HTTP yet to inspect | **Block at next node via UDS PreFlight** |
-| 10,000 internal `estimated_tasks` | No wire traffic to signal | Firewall sees nothing | **Entropy / depth limits before I/O** |
-| Context avalanche toward OOM | ACTIVE session, green health checks | Rate limit is QPS, not bytes×depth | **cgroup-aware EntropyMonitor** |
-| Emergency fleet clamp | Policy change is conversational | Per-route config push | **Kill Switch + CRD overlay in <1s** |
+
+| Failure mode                      | ASP / in-band signaling             | L7 gateway / WAF                   | **AFP (out-of-band CPL)**                |
+| --------------------------------- | ----------------------------------- | ---------------------------------- | ---------------------------------------- |
+| Planner `while True` recursion    | Session may still look valid        | No HTTP yet to inspect             | **Block at next node via UDS PreFlight** |
+| 10,000 internal `estimated_tasks` | No wire traffic to signal           | Firewall sees nothing              | **Entropy / depth limits before I/O**    |
+| Context avalanche toward OOM      | ACTIVE session, green health checks | Rate limit is QPS, not bytes×depth | **cgroup-aware EntropyMonitor**          |
+| Emergency fleet clamp             | Policy change is conversational     | Per-route config push              | **Kill Switch + CRD overlay in <1s**     |
+
 
 ```text
          Collaboration semantics          Physical consequence
@@ -165,11 +198,13 @@ AFP does **not** compete with gRPC, HTTP, Kafka, NATS, MCP, or LangGraph. It sta
 
 ### Three things people call "Agent Communication"
 
-| Layer | Example | Who owns it |
-|-------|---------|-------------|
-| **Conversation** | Multi-turn chat, prompts, dialogue state | LLM / application |
-| **Data passing** | `{ task_result, confidence, references }` over gRPC, Kafka, MCP | Existing messaging stacks |
-| **Runtime signaling** | PreFlight verdict, GovernanceHeader attestation, persistent FSM | **AFP (L2–L4)** |
+
+| Layer                 | Example                                                         | Who owns it               |
+| --------------------- | --------------------------------------------------------------- | ------------------------- |
+| **Conversation**      | Multi-turn chat, prompts, dialogue state                        | LLM / application         |
+| **Data passing**      | `{ task_result, confidence, references }` over gRPC, Kafka, MCP | Existing messaging stacks |
+| **Runtime signaling** | PreFlight verdict, GovernanceHeader attestation, persistent FSM | **AFP (L2–L4)**           |
+
 
 Mixing all three under one "agent communication protocol" is the architectural mistake AFP corrects. AFP governs **runtime eligibility and consequences**—not chat syntax, not business payload schemas.
 
@@ -177,11 +212,13 @@ Mixing all three under one "agent communication protocol" is the architectural m
 
 AFP does **not** ban Agent A → Agent B. It constrains **unsustainable optimization trajectories**:
 
-| Allowed | Blocked at the runtime boundary |
-|---------|--------------------------------|
-| Planner → A → B → C within policy limits | Recursive loops (A → D → F → A) past `maxRecursionDepth` |
-| Declared delegation within entropy budget | Intent bursts and context avalanches toward OOM |
-| Peer traffic over existing transports | Emergent runaway that survives polite sessions |
+
+| Allowed                                   | Blocked at the runtime boundary                          |
+| ----------------------------------------- | -------------------------------------------------------- |
+| Planner → A → B → C within policy limits  | Recursive loops (A → D → F → A) past `maxRecursionDepth` |
+| Declared delegation within entropy budget | Intent bursts and context avalanches toward OOM          |
+| Peer traffic over existing transports     | Emergent runaway that survives polite sessions           |
+
 
 This is **physical consequence**, not workflow approval. AFP is a **runtime boundary** (sidecar + SEA), not a workflow engine and not a central orchestrator.
 
@@ -197,11 +234,13 @@ Trust enforcement lives at the **sidecar** (PreFlight locally, GovernanceHeader 
 
 ### Three planes (do not conflate)
 
-| Plane | Examples | AFP role |
-|-------|----------|----------|
-| **Agent control** | Planner, LangGraph DAG, tool graph | Observed at L1; **not specified** by AFP |
-| **Data** | Payload, cache, streaming | Carried by gRPC/Kafka/MCP; **out of scope** |
-| **Coordination** | Eligibility, consequence, friction, dependency trust | **L2–L4 core** — CPL, SEA, CVP, Policy Surface |
+
+| Plane             | Examples                                             | AFP role                                       |
+| ----------------- | ---------------------------------------------------- | ---------------------------------------------- |
+| **Agent control** | Planner, LangGraph DAG, tool graph                   | Observed at L1; **not specified** by AFP       |
+| **Data**          | Payload, cache, streaming                            | Carried by gRPC/Kafka/MCP; **out of scope**    |
+| **Coordination**  | Eligibility, consequence, friction, dependency trust | **L2–L4 core** — CPL, SEA, CVP, Policy Surface |
+
 
 > *Note:* Kubernetes docs use "control plane" for the Operator / Policy Controller (L3). That is **policy administration**, not the agent's planner control plane.
 
@@ -250,11 +289,13 @@ afp-demo-agent: sidecar socket ready
 annotated-stop: afp-core: recursion depth exceeded physical limit, intent loop detected
 ```
 
-| Log line | What just happened |
-|----------|-------------------|
-| `socket ready` | `emptyDir` UDS mount — Python agent ↔ Go sidecar, **no TCP stack** |
-| `LangGraph node blocked` | `maxRecursionDepth: 10` tripped; intent killed **in the cradle** |
-| `annotated-stop` | `@afp_governed_node(annotate)` — no crash, no OOM, graceful state-machine stop |
+
+| Log line                 | What just happened                                                             |
+| ------------------------ | ------------------------------------------------------------------------------ |
+| `socket ready`           | `emptyDir` UDS mount — Python agent ↔ Go sidecar, **no TCP stack**             |
+| `LangGraph node blocked` | `maxRecursionDepth: 10` tripped; intent killed **in the cradle**               |
+| `annotated-stop`         | `@afp_governed_node(annotate)` — no crash, no OOM, graceful state-machine stop |
+
 
 **Three layers. One log stream. Zero hand-waving.**
 
@@ -326,11 +367,15 @@ flowchart TB
   end
 ```
 
-| Layer | Role | Key artifacts |
-|-------|------|---------------|
-| **L1 Application** | Govern intent before tool storms | `sdk/python/afp_sdk`, LangGraph adapter |
-| **L2 Data Plane** | Microsecond pre-flight enforcement | `cmd/dataplane/sidecar`, UDS IPC |
-| **L3 Control Plane** | Declarative law + runtime injunction | CRD, Operator, Policy Controller |
+
+
+
+| Layer                | Role                                 | Key artifacts                           |
+| -------------------- | ------------------------------------ | --------------------------------------- |
+| **L1 Application**   | Govern intent before tool storms     | `sdk/python/afp_sdk`, LangGraph adapter |
+| **L2 Data Plane**    | Microsecond pre-flight enforcement   | `cmd/dataplane/sidecar`, UDS IPC        |
+| **L3 Control Plane** | Declarative law + runtime injunction | CRD, Operator, Policy Controller        |
+
 
 ### Dual-Source Policy Merge
 
@@ -350,10 +395,12 @@ The same pattern Envoy xDS uses — **persistent law** plus **runtime injunction
 └─────────────────────────────────────────────────────────────┘
 ```
 
-| Source | Latency | Purpose |
-|--------|---------|---------|
-| **Base Layer** | ~60s (kubelet ConfigMap sync) | Durable law. Survives controller outages. |
+
+| Source            | Latency                                 | Purpose                                   |
+| ----------------- | --------------------------------------- | ----------------------------------------- |
+| **Base Layer**    | ~60s (kubelet ConfigMap sync)           | Durable law. Survives controller outages. |
 | **Overlay Layer** | Sub-second (gRPC `StreamPolicyUpdates`) | CRD push, Kill Switch, incident response. |
+
 
 **Design law:** *CRD is governance law. ConfigMap is the fail-safe floor. gRPC stream is the runtime injunction.*
 
@@ -365,11 +412,13 @@ Security: Sidecars authenticate with **projected ServiceAccount tokens** validat
 
 Published automatically on every push to `main`:
 
-| Image | Command |
-|-------|---------|
-| [`aegis-fabric-sidecar`](https://ghcr.io/filthymudblood/aegis-fabric-sidecar) | `sidecar` · `policy-controller` · `preflightclient` · `policyctl` |
-| [`aegis-fabric-operator`](https://ghcr.io/filthymudblood/aegis-fabric-operator) | `operator` |
-| [`afp-demo-agent`](https://ghcr.io/filthymudblood/afp-demo-agent) | LangGraph dead-loop demo |
+
+| Image                                                                           | Command                                                           |
+| ------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
+| `[aegis-fabric-sidecar](https://ghcr.io/filthymudblood/aegis-fabric-sidecar)`   | `sidecar` · `policy-controller` · `preflightclient` · `policyctl` |
+| `[aegis-fabric-operator](https://ghcr.io/filthymudblood/aegis-fabric-operator)` | `operator`                                                        |
+| `[afp-demo-agent](https://ghcr.io/filthymudblood/afp-demo-agent)`               | LangGraph dead-loop demo                                          |
+
 
 ```bash
 docker pull ghcr.io/filthymudblood/aegis-fabric-sidecar:latest
@@ -383,10 +432,12 @@ docker pull ghcr.io/filthymudblood/afp-demo-agent:latest
 
 ### `AFP_SDK_FAIL_MODE`
 
-| Mode | Sidecar unreachable | Use case |
-|------|---------------------|----------|
-| **`open`** | Warn, allow intent | Local dev |
-| **`closed`** | Halt intent (`AFPInfrastructureError`) | Production K8s default |
+
+| Mode         | Sidecar unreachable                    | Use case               |
+| ------------ | -------------------------------------- | ---------------------- |
+| `**open**`   | Warn, allow intent                     | Local dev              |
+| `**closed**` | Halt intent (`AFPInfrastructureError`) | Production K8s default |
+
 
 ### `entropyLimit` tuning
 
@@ -419,10 +470,12 @@ Blocked intents become `afp_blocked` state — route to human-in-the-loop instea
 
 Monte Carlo: **1,000 runs × 500 nodes × 5% malicious × 100 epochs**
 
-| Network | Survivors |
-|---------|-----------|
+
+| Network  | Survivors              |
+| -------- | ---------------------- |
 | Baseline | **500 → 2.05** (~0.4%) |
-| **AFP** | **500.00** (100%) |
+| **AFP**  | **500.00** (100%)      |
+
 
 ```bash
 go run ./cmd/demo/simulator && make demo-report
@@ -450,7 +503,7 @@ aegis-fabric/
 └─ scripts/kind-quickstart.sh
 ```
 
-**K8s deep-dive:** [`deploy/kubernetes/README.md`](deploy/kubernetes/README.md) · **Python SDK:** [`sdk/python/README.md`](sdk/python/README.md)
+**K8s deep-dive:** `[deploy/kubernetes/README.md](deploy/kubernetes/README.md)` · **Python SDK:** `[sdk/python/README.md](sdk/python/README.md)`
 
 ---
 
@@ -467,12 +520,14 @@ Key series: `afp_preflight_actions_total`, `afp_ingress_actions_total`
 
 ## Status
 
-| Phase | Delivered |
-|-------|-----------|
-| **Phase 1** | Sidecar data plane · SDK IPC · LangGraph adapter · K8s co-deploy · CRD Operator · ConfigMap hot-reload · demo-agent |
+
+| Phase       | Delivered                                                                                                                                                  |
+| ----------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Phase 1** | Sidecar data plane · SDK IPC · LangGraph adapter · K8s co-deploy · CRD Operator · ConfigMap hot-reload · demo-agent                                        |
 | **Phase 2** | `StreamPolicyUpdates` · Operator→Controller bridge · SA TokenReview · revision replay · **mTLS** · **status writeback** · **delete propagation** · GHCR CI |
 
-**Frozen after PR-6c.** Production hardening: [`ROADMAP.md`](ROADMAP.md) · Theory: [Whitepaper v2.0 Protocol Edition](docs/whitepaper-v2/) · v1 archive: [Zenodo](https://zenodo.org/records/20674352)
+
+**Frozen after PR-6c.** Production hardening: `[ROADMAP.md](ROADMAP.md)` · Theory: [Whitepaper v2.0 Protocol Edition](docs/whitepaper-v2/) · v1 archive: [Zenodo](https://zenodo.org/records/20674352)
 
 ---
 
