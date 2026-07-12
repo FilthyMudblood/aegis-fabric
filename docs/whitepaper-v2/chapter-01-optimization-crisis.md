@@ -150,7 +150,91 @@ This is the same architectural move as placing congestion control **inside the t
 
 ---
 
-## 1.5 Open Networks vs. Closed Administrations (A Scope Statement)
+## 1.5 Protocol Positioning — What AFP Is Not
+
+Industry discourse collapses **agent communication** into one bucket. AFP requires a finer partition—without claiming to be a fourth messaging standard.
+
+### 1.5.1 Three layers often conflated
+
+| Layer | Representative content | Protocol owner |
+|-------|------------------------|----------------|
+| **A · Conversation** | Multi-turn chat, prompts, dialogue state | Application / LLM runtime |
+| **B · Data passing** | Structured payloads (`task_result`, `confidence`, …) over gRPC, Kafka, MCP, Event Grid | Existing transports |
+| **C · Runtime signaling** | Eligibility probes, attestation frames, persistent throttle/isolation state | **AFP (L2–L4)** |
+
+**Lemma 1.2 (Communication partition):** Confusing A, B, and C under a single "agent protocol" exports physical risk to the transport layer and semantic risk to the consequence layer.
+
+AFP's formal split is **semantic collaboration (L5)** versus **physical consequence (L2–L4)**—Theorem 1.1. The A/B/C partition is the operational refinement: AFP does not specify chat (A) or business schemas (B); it supplies runtime law (C) as **PreFlight**, **GovernanceHeader**, and **persistent FSM consequences**.
+
+### 1.5.2 Trajectory constraint, not communication ban
+
+Enterprises are often misread as forbidding **Agent A → Agent B**. The sharper policy statement:
+
+> **Constrain unsustainable optimization trajectories; do not ban coordination that stays within physical law.**
+
+| Permitted under policy | Intercepted at execution boundary *B* |
+|------------------------|---------------------------------------|
+| Planner → A → B → C within depth/entropy limits | Recursive delegation loops past `maxRecursionDepth` |
+| Declared bursts within entropy budget | Intent burst toward in-process queue explosion |
+| Peer payloads over incumbent transports | Context avalanche and cross-node contagion |
+
+AFP is **not** a workflow engine. It does not mandate a fixed DAG. It does not approve org-chart routing. It enforces **physics** when optimizers invent paths faster than operators can observe—whether those paths are "emergent" or "designed."
+
+**Corollary:** Blocking A → D → F → A is recursion containment, not a veto on multi-agent collaboration.
+
+### 1.5.3 Runtime boundary, not workflow engine
+
+CPL attaches at **execution boundary** *B*—implemented as a sidecar process, not as a planner:
+
+```text
+Agent runtime  →  AFP sidecar (SEA)  →  peer sidecar  →  Agent runtime
+        ↑                    ↑
+   Path A PreFlight    Path B GovernanceHeader
+```
+
+The sidecar is a **runtime boundary**—physical interception before commit—not an orchestrator, not a DAG scheduler, not a semantic router.
+
+### 1.5.4 Sidecar enforcement, not mandatory central gateway
+
+Zero trust does not uniquely imply a **central security gateway**. Service meshes (e.g. Istio) enforce trust at **per-pod sidecars**:
+
+```text
+Pod A · Envoy  →  mTLS  →  Envoy · Pod B
+```
+
+AFP's reference topology is analogous:
+
+```text
+Agent  →  AFP Sidecar  →  mTLS  →  AFP Sidecar  →  Agent
+```
+
+Both are zero trust; the **trust enforcement point** differs. AFP normative law places SEA at each node ( [`ARCHITECTURE.md`](../../ARCHITECTURE.md) §2). A central gateway MAY exist in enterprise topology, but it is **not** a protocol requirement.
+
+### 1.5.5 Control, data, and coordination planes
+
+Frameworks historically merge **control** and **coordination**. AFP extracts coordination into an inspectable layer:
+
+| Plane | Governs | AFP specification |
+|-------|---------|-------------------|
+| **Agent control** | Planner, workflow graph, tool selection | L1 — observed, not defined |
+| **Data** | Payload, cache, streaming bytes | Incumbent transports — out of scope |
+| **Coordination** | Eligibility, consequence persistence, friction, dependency trust | L2–L4 — **core protocol** |
+
+**Terminology note:** Enterprise deployment docs use "control plane" for Operator / Policy Controller (L3 policy administration). That is distinct from the agent's planner control plane (L1).
+
+### 1.5.6 The question AFP answers
+
+Mature stacks already answer: *How do agents move bytes and messages?*
+
+AFP answers a narrower question—one that does not compete with LangGraph, Kafka, or MCP:
+
+> **When agents can already communicate, how do we give each coordination attempt consistent runtime semantics and consequences that persist?**
+
+Transport delivers. Signaling negotiates exposed intent (L5). AFP **governs before commit**—with enforceable physics.
+
+---
+
+## 1.6 Open Networks vs. Closed Administrations (A Scope Statement)
 
 This protocol document addresses **The Open Protocol problem**: mutually distrusting optimizers, no central moral authority, equilibrium under attack.
 
@@ -166,7 +250,7 @@ Kubernetes appears nowhere in the proof sketch. Neither do approval workflows. T
 
 ---
 
-## 1.6 From v1 Empirics to v2 Theory
+## 1.7 From v1 Empirics to v2 Theory
 
 Version 1.0 demonstrated survival: in Monte Carlo open-mesh conditions (500 nodes, 5% malicious, 100 epochs), baseline coordination collapsed to ~**0.4%** mean survivors while AFP-maintained topology sustained **100%**.
 
@@ -184,7 +268,7 @@ Subsequent chapters:
 
 ---
 
-## 1.7 Chapter Conclusion: The Naked Optimizer
+## 1.8 Chapter Conclusion: The Naked Optimizer
 
 Framework authors build stronger **intent engines**. Signaling authors refine **intent syntax**.
 

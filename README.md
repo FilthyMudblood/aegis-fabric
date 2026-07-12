@@ -83,6 +83,62 @@ Deep dive: [Whitepaper v2 · Chapter 1 — The Optimization Crisis](docs/whitepa
 
 ---
 
+## Protocol Positioning
+
+AFP does **not** compete with gRPC, HTTP, Kafka, NATS, MCP, or LangGraph. It stacks **on top of** whatever transport and framework you already use.
+
+### Three things people call "Agent Communication"
+
+| Layer | Example | Who owns it |
+|-------|---------|-------------|
+| **Conversation** | Multi-turn chat, prompts, dialogue state | LLM / application |
+| **Data passing** | `{ task_result, confidence, references }` over gRPC, Kafka, MCP | Existing messaging stacks |
+| **Runtime signaling** | PreFlight verdict, GovernanceHeader attestation, persistent FSM | **AFP (L2–L4)** |
+
+Mixing all three under one "agent communication protocol" is the architectural mistake AFP corrects. AFP governs **runtime eligibility and consequences**—not chat syntax, not business payload schemas.
+
+### What enterprises actually constrain
+
+AFP does **not** ban Agent A → Agent B. It constrains **unsustainable optimization trajectories**:
+
+| Allowed | Blocked at the runtime boundary |
+|---------|--------------------------------|
+| Planner → A → B → C within policy limits | Recursive loops (A → D → F → A) past `maxRecursionDepth` |
+| Declared delegation within entropy budget | Intent bursts and context avalanches toward OOM |
+| Peer traffic over existing transports | Emergent runaway that survives polite sessions |
+
+This is **physical consequence**, not workflow approval. AFP is a **runtime boundary** (sidecar + SEA), not a workflow engine and not a central orchestrator.
+
+### Sidecar mesh, not central gateway
+
+Zero trust does not require a single choke-point gateway. AFP follows the **service-mesh pattern**:
+
+```text
+Agent  →  AFP Sidecar  →  mTLS  →  AFP Sidecar  →  Agent
+```
+
+Trust enforcement lives at the **sidecar** (PreFlight locally, GovernanceHeader on ingress)—the same accountability model as Envoy beside each pod. Central gateways and sidecar meshes are both zero trust; AFP chooses **per-node enforcement**.
+
+### Three planes (do not conflate)
+
+| Plane | Examples | AFP role |
+|-------|----------|----------|
+| **Agent control** | Planner, LangGraph DAG, tool graph | Observed at L1; **not specified** by AFP |
+| **Data** | Payload, cache, streaming | Carried by gRPC/Kafka/MCP; **out of scope** |
+| **Coordination** | Eligibility, consequence, friction, dependency trust | **L2–L4 core** — CPL, SEA, CVP, Policy Surface |
+
+> *Note:* Kubernetes docs use "control plane" for the Operator / Policy Controller (L3). That is **policy administration**, not the agent's planner control plane.
+
+### The question AFP answers
+
+Enterprises already have mature stacks for **how bytes move**. AFP answers a narrower, deployable question:
+
+> **When agents can already communicate, how do we give each coordination attempt consistent runtime semantics and consequences that persist?**
+
+Transport delivers. AFP **governs before commit**.
+
+---
+
 ## 10-Minute Quickstart
 
 ### Prerequisites

@@ -80,6 +80,62 @@ ASP 等应用层信令解决的是**路口交通灯**问题：
 
 ---
 
+## 协议定位
+
+AFP **不替代** gRPC、HTTP、Kafka、NATS、MCP 或 LangGraph。它**叠加**在你已有的传输层与框架之上。
+
+### 常被混为一谈的三种「Agent 通信」
+
+| 层次 | 例子 | 归属 |
+|------|------|------|
+| **对话（Conversation）** | 多轮 Chat、Prompt、会话状态 | LLM / 应用层 |
+| **数据传递（Data passing）** | `{ task_result, confidence }` 走 gRPC、Kafka、MCP | 既有消息栈 |
+| **运行时信令（Runtime signaling）** | PreFlight 裁决、GovernanceHeader 认证、持久 FSM | **AFP（L2–L4）** |
+
+把三者统称「Agent 通信协议」是 AFP 要修正的架构误区。AFP 管的是**运行时资格与后果**，不管聊天语法，也不管业务载荷 schema。
+
+### 企业真正要约束的是什么
+
+AFP **不禁止** Agent A → Agent B，而是约束**不可持续的优化轨迹**：
+
+| 允许 | 在运行时边界拦截 |
+|------|------------------|
+| 策略内的 Planner → A → B → C | 超过 `maxRecursionDepth` 的递归环（A → D → F → A） |
+| 熵预算内的委派 | 意图爆发、上下文雪崩逼近 OOM |
+| 既有传输上的对等流量 | 会话仍「合法」但物理上失控的涌现行为 |
+
+这是**物理后果**，不是工作流审批。AFP 是**运行时边界**（Sidecar + SEA），不是工作流引擎，也不是中央编排器。
+
+### Sidecar Mesh，而非中央网关
+
+零信任不要求单一 choke-point 网关。AFP 采用 **Service Mesh 模式**：
+
+```text
+Agent  →  AFP Sidecar  →  mTLS  →  AFP Sidecar  →  Agent
+```
+
+信任 enforcement 在 **Sidecar**（本地 PreFlight、入站 GovernanceHeader）——与每 Pod 旁 Envoy 同一问责模型。中央网关与 Sidecar Mesh 都可以是零信任；AFP 选择**每节点执法**。
+
+### 三个 Plane（勿混用）
+
+| Plane | 例子 | AFP 角色 |
+|-------|------|----------|
+| **Agent 控制面** | Planner、LangGraph DAG、工具图 | L1 可观测；AFP **不规定** |
+| **数据面** | 载荷、缓存、流式 | gRPC/Kafka/MCP 承载；**超出范围** |
+| **协调面** | 资格、后果、摩擦、依赖信任 | **L2–L4 核心** — CPL、SEA、CVP、Policy Surface |
+
+> *说明：* K8s 文档里的「control plane」指 Operator / Policy Controller（L3），是**策略管理**，不是 Agent 的 Planner 控制面。
+
+### AFP 回答的问题
+
+企业已有成熟的**字节怎么传**。AFP 回答一个更小、更易落地的问题：
+
+> **当 Agent 已经能够通信时，如何让每次协调具有一致的运行时语义、且后果可持久？**
+
+传输负责送达。AFP 负责**提交之前的治理**。
+
+---
+
 ## 10 分钟快速起步
 
 ### 前置条件
