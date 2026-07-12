@@ -17,7 +17,7 @@
 
 **Aegis Fabric Protocol (AFP)** is a **Consequence Persistence Layer (CPL)** — the missing runtime brake between *agents can talk* and *the mesh survives*. Reference deployments use a Kubernetes-native sidecar; the **protocol** is the same for enterprise multi-agent and open P2P agent meshes.
 
-中文文档 · `[README.zh-CN.md](README.zh-CN.md)` · Whitepapers · **[v2 Protocol Edition](docs/whitepaper-v2/)** · [v1 on Zenodo](https://zenodo.org/records/20674352)
+中文文档 · [`README.zh-CN.md`](README.zh-CN.md) · Whitepapers · **[v2 Protocol Edition](docs/whitepaper-v2/whitepaper-v2-protocol-edition.md)** · [v1 on Zenodo](https://zenodo.org/records/20674352)
 
 ### The gap
 
@@ -42,7 +42,7 @@ Multi-agent stacks solve **planning** (LangGraph, CrewAI) and **messaging** (gRP
 
 > *Agents learned to talk. Networks learned to route. **Nobody brakes the optimizer before it commits—and remembers when it failed.***
 
-*One protocol, two profiles:* **closed mesh** (mTLS, PreFlight-first) and **open exchange** (GovernanceHeader, CVP, stranger tax). See [Whitepaper Ch.4](docs/whitepaper-v2/chapter-04-open-network-topology.md).
+*One protocol, two profiles:* **closed mesh** (mTLS, PreFlight-first) and **open exchange** (GovernanceHeader, CVP, stranger tax). See [Whitepaper §4](docs/whitepaper-v2/whitepaper-v2-protocol-edition.md#open-network-topology).
 
 ### Why agent stacking needs memory
 
@@ -199,7 +199,7 @@ Friction applies **before commit**, with **persistent consequences**—so runawa
 
 **Primary target is out-of-control stacking**, not semantic "bad intent." In enterprise meshes, that means your own planner chain runaway. In open P2P meshes, add **physically malicious peers**—overload export, contagion—contained by CVP and ingress law, not by reading message meaning.
 
-Theory: [Whitepaper v2 · Chapter 2 — CPL](docs/whitepaper-v2/chapter-02-consequence-persistence-layer.md) · [Chapter 3 — Pre-Intent](docs/whitepaper-v2/chapter-03-pre-intent-enforcement.md)
+Theory: [Whitepaper v2 §2 — CPL](docs/whitepaper-v2/whitepaper-v2-protocol-edition.md#consequence-persistence-layer) · [§3 — Pre-Intent](docs/whitepaper-v2/whitepaper-v2-protocol-edition.md#pre-intent-enforcement)
 
 ---
 
@@ -236,7 +236,7 @@ That is necessary infrastructure. It is **not sufficient** for physical safety i
 
 **Design stance:** Signaling is not the enemy. Treating it as the *only* line of defense is the architectural mistake. AFP sits **below** application protocols — same relationship Envoy has to HTTP, or cgroups have to your process: out-of-band, microsecond, fail-closed.
 
-Deep dive: [Whitepaper v2 · Chapter 1 — The Optimization Crisis](docs/whitepaper-v2/chapter-01-optimization-crisis.md) · [full index](docs/whitepaper-v2/)
+Deep dive: [Whitepaper v2 — Protocol Edition](docs/whitepaper-v2/whitepaper-v2-protocol-edition.md)
 
 ---
 
@@ -575,7 +575,7 @@ Key series: `afp_preflight_actions_total`, `afp_ingress_actions_total`
 | **Phase 2** | `StreamPolicyUpdates` · Operator→Controller bridge · SA TokenReview · revision replay · **mTLS** · **status writeback** · **delete propagation** · GHCR CI |
 
 
-**Frozen after PR-6c.** Production hardening: `[ROADMAP.md](ROADMAP.md)` · Theory: [Whitepaper v2.0 Protocol Edition](docs/whitepaper-v2/) · v1 archive: [Zenodo](https://zenodo.org/records/20674352)
+**Frozen after PR-6c.** Production hardening: [`ROADMAP.md`](ROADMAP.md) · Theory: [Whitepaper v2.0 Protocol Edition](docs/whitepaper-v2/whitepaper-v2-protocol-edition.md) · v1 archive: [Zenodo](https://zenodo.org/records/20674352)
 
 ---
 

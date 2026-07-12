@@ -14,7 +14,7 @@
 
 **Aegis Fabric Protocol（AFP）** 是**后果持久层（CPL）**——插在「Agent 能通信」和「系统能存活」之间的那一格**协调运行时**刹车。参考实现为 K8s Sidecar；**协议**对企业 multi-agent 与开放 P2P agent 网络通用。
 
-English · [`README.md`](README.md) · 白皮书 · **[v2 协议版](docs/whitepaper-v2/)** · [v1 Zenodo 存档](https://zenodo.org/records/20674352)
+English · [`README.md`](README.md) · 白皮书 · **[v2 协议版（完整版）](docs/whitepaper-v2/whitepaper-v2-protocol-edition.md)** · [v1 Zenodo 存档](https://zenodo.org/records/20674352)
 
 ### 市场空白
 
@@ -35,7 +35,7 @@ Multi-agent 栈解决了**规划**（LangGraph、CrewAI）和**传输**（gRPC�
 
 > *Agent 学会了说话，网络学会了路由。**还没有人在优化器提交之前踩刹车，并记住它失控过。***
 
-*一套协议，两种 profile：* **closed mesh**（mTLS，以 PreFlight 为主）与 **open exchange**（GovernanceHeader、CVP、陌生人税）。见[白皮书第 4 章](docs/whitepaper-v2/chapter-04-open-network-topology.md)。
+*一套协议，两种 profile：* **closed mesh**（mTLS，以 PreFlight 为主）与 **open exchange**（GovernanceHeader、CVP、陌生人税）。见[白皮书 §4](docs/whitepaper-v2/whitepaper-v2-protocol-edition.md#open-network-topology)。
 
 ### 为什么 Agent 堆叠需要「有记忆」
 
@@ -184,7 +184,7 @@ AFP **不判断** intent 在语义或道德上是否「坏」。它拦截的是*
 
 **主要对象是堆叠失控**，不是语义上的「坏 intent」。企业网主要是自家 planner 链失控；开放 P2P 网另加**物理恶意 peer**（过载导出、传染）——由 CVP 与入站法则 containment，而非读懂消息含义。
 
-理论全文：[白皮书 v2 · 第 2 章 CPL](docs/whitepaper-v2/chapter-02-consequence-persistence-layer.md) · [第 3 章 意图前执法](docs/whitepaper-v2/chapter-03-pre-intent-enforcement.md)
+理论全文：[白皮书 v2 §2 CPL](docs/whitepaper-v2/whitepaper-v2-protocol-edition.md#consequence-persistence-layer) · [§3 意图前执法](docs/whitepaper-v2/whitepaper-v2-protocol-edition.md#pre-intent-enforcement)
 
 ---
 
@@ -218,7 +218,7 @@ ASP 等应用层信令解决的是**路口交通灯**问题：
 
 **立场：** 信令不是敌人；把它当作*唯一*防线才是架构失误。AFP 位于应用协议**之下** —— 类似 Envoy 之于 HTTP、cgroup 之于进程：带外、微秒级、fail-closed。
 
-详见白皮书 v2 · [第 1 章 — 优化危机](docs/whitepaper-v2/chapter-01-optimization-crisis.md) · [完整目录](docs/whitepaper-v2/)
+详见白皮书 v2 · [完整协议版](docs/whitepaper-v2/whitepaper-v2-protocol-edition.md)
 
 ---
 
@@ -405,7 +405,7 @@ go run ./cmd/demo/simulator
 | **Phase 1** | 数据面 · SDK · LangGraph · K8s 伴生 · CRD Operator · demo-agent |
 | **Phase 2** | 策略推流 · Operator 桥接 · TokenReview · revision 续传 · **mTLS** · **状态回写** · **删除传播** · GHCR CI |
 
-**代码冻结于 PR-6c。** 生产加固：[`ROADMAP.md`](ROADMAP.md) · 理论：[白皮书 v2.0 协议版](docs/whitepaper-v2/) · v1 存档：[Zenodo](https://zenodo.org/records/20674352)
+**代码冻结于 PR-6c。** 生产加固：[`ROADMAP.md`](ROADMAP.md) · 理论：[白皮书 v2.0 协议版](docs/whitepaper-v2/whitepaper-v2-protocol-edition.md) · v1 存档：[Zenodo](https://zenodo.org/records/20674352)
 
 ---
 
