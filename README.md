@@ -6,14 +6,36 @@
 [![GHCR Demo Agent](https://img.shields.io/badge/GHCR-demo--agent-2496ED?logo=docker&logoColor=white)](https://ghcr.io/filthymudblood/afp-demo-agent)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 
-### **The Physical Brakes for Enterprise Agent Networks**
+### **The Physical Brakes for Multi-Agent Systems**
+*Enterprise today · P2P-ready by protocol*
 
 > **"TCP governs packets. AFP governs optimizers."**
 > *(TCP 治理数据包，AFP 治理优化器)*
 
-**Aegis Fabric Protocol (AFP)** is a Kubernetes-native **Consequence Persistence Layer (CPL)** — an out-of-band sidecar that kills planner dead-loops, intent bursts, and recursive delegation storms **before** they become irreversible network I/O.
+**Aegis Fabric Protocol (AFP)** is a **Consequence Persistence Layer (CPL)** — the missing runtime brake between *agents can talk* and *the mesh survives*. Reference deployments use a Kubernetes-native sidecar; the **protocol** is the same for enterprise multi-agent and open P2P agent meshes.
 
 中文文档 · [`README.zh-CN.md`](README.zh-CN.md) · Whitepapers · **[v2 Protocol Edition](docs/whitepaper-v2/)** · [v1 on Zenodo](https://zenodo.org/records/20674352)
+
+### The gap
+
+Multi-agent stacks solve **planning** (LangGraph, CrewAI) and **messaging** (gRPC, Kafka, MCP, ASP). None solve **coordination runtime**:
+
+> *May this step execute—and do consequences persist when it does not?*
+
+| Layer | Status |
+|-------|--------|
+| Transport | Solved — bytes move |
+| Semantic collaboration | Evolving — ASP, A2A, MCP |
+| **Coordination runtime law** | **Missing — AFP fills this gap** |
+
+| Mode | What AFP answers |
+|------|------------------|
+| **Enterprise multi-agent** | Stop runaway planners *inside* the pod—before OOM, token burn, and retry cascades |
+| **P2P / open agent mesh** | Under distrust: admit only physically viable peers; quarantine toxic nodes before contagion spreads |
+
+> *Agents learned to talk. Networks learned to route. **Nobody brakes the optimizer before it commits—and remembers when it failed.***
+
+*One protocol, two profiles:* **closed mesh** (mTLS, PreFlight-first) and **open exchange** (GovernanceHeader, CVP, stranger tax). See [Whitepaper Ch.4](docs/whitepaper-v2/chapter-04-open-network-topology.md).
 
 ---
 

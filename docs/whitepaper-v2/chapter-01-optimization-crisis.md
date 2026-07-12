@@ -8,7 +8,38 @@
 
 ---
 
-## 1.0 Manifesto
+## 1.0 The Market Gap
+
+Multi-agent infrastructure solved **planning** and **messaging**. It did not solve **coordination runtime**—the layer that answers, before each step commits:
+
+> *May this coordination execute? If not, do consequences persist?*
+
+| Stack layer | Representative tools | Gap |
+|-------------|---------------------|-----|
+| **Planning** | LangGraph, CrewAI, AutoGen | Optimizers decompose and delegate—no physical brake |
+| **Transport** | gRPC, HTTP, Kafka, NATS, MCP | Bytes move; internal task storms produce zero wire traffic |
+| **Semantic collaboration** | ASP, A2A | Negotiates *exposed* intent—traffic lights, not brakes |
+| **Coordination runtime** | **AFP (CPL)** | Pre-intent eligibility, persistent consequences, peer physical law |
+
+**Market positioning:** AFP does not compete with transports or workflow engines. It occupies the **empty cell** between *agents can communicate* and *coordination remains survivable*.
+
+### 1.0.1 Enterprise multi-agent vs. P2P agent mesh
+
+One protocol (**L2 SEA + ACC + FSM**), two deployment profiles:
+
+| | **Enterprise multi-agent** | **P2P / open agent mesh** |
+|--|---------------------------|---------------------------|
+| **Trust** | Known identities inside administrative boundary | Mutual distrust; strangers may connect |
+| **Primary risk** | In-pod planner runaway—loops, bursts, OOM | Cross-node contagion; malicious or overloaded peers |
+| **AFP emphasis** | **Path A** — PreFlight, ReportInternalState, local entropy | **Path A + Path B** — GovernanceHeader ingress, CVP, stranger tax, gossip |
+| **Policy (L3)** | CRD, ConfigMap, Kill Switch overlay | Same + open-profile trust evolution (L4) |
+| **Reader takeaway** | Brake your own optimizer before it burns the fleet | Brake yours *and* contain toxic neighbors |
+
+> *Transport is solved. Semantics are evolving. **Runtime coordination law is not.** AFP supplies that law—with enforceable physics.*
+
+---
+
+## 1.1 Manifesto
 
 We built the Internet for **stateless requestors** and **passive endpoints**.
 
@@ -40,9 +71,9 @@ That is the question TCP never asked. HTTP never asked. ASP cannot ask it, becau
 
 ---
 
-## 1.1 The Post-Stateless Era
+## 1.2 The Post-Stateless Era
 
-### 1.1.1 From packets to optimization trajectories
+### 1.2.1 From packets to optimization trajectories
 
 Classical infrastructure assumes **episodic interaction**: request in, response out, state externalized to a database if needed. The unit of governance is the **datagram** or the **HTTP transaction**.
 
@@ -54,7 +85,7 @@ Autonomous optimizers invert the unit of risk. The dangerous object is not a pac
 
 We call this the **post-stateless era**: not because storage disappeared, but because **the locus of stateful danger moved inside the optimizer**, invisible to wire-centric observability.
 
-### 1.1.2 The governance gap
+### 1.2.2 The governance gap
 
 Three incumbent layers fail structurally—not by implementation quality, but by **layer mismatch**:
 
@@ -70,7 +101,7 @@ One cycle is enough.
 
 ---
 
-## 1.2 Semantic Signaling and Its Sufficiency Boundary
+## 1.3 Semantic Signaling and Its Sufficiency Boundary
 
 Argent Signaling Protocol (ASP) exemplifies the **correct layer for coordination semantics**: who may speak, about what, under which session contract. In an open optimizer network, such protocols are **load-bearing**.
 
@@ -93,11 +124,11 @@ Corollary: Deploying ASP (or any semantic protocol) **without** an out-of-band c
 
 ---
 
-## 1.3 Three Structural Pathologies of Autonomous Optimizers
+## 1.4 Three Structural Pathologies of Autonomous Optimizers
 
 These are not implementation bugs. They are **default behaviors** of systems trained to decompose, delegate, and minimize loss over long horizons.
 
-### 1.3.1 Intent burst
+### 1.4.1 Intent burst
 
 Decomposition is the dominant planning heuristic: one objective fractures into sub-objectives, each spawning tool chains. Without external friction, this is a **positive feedback loop** inside the process:
 
@@ -107,7 +138,7 @@ objective → plan(N steps) → each step replans → internal queue ~ O(branch^
 
 Wire metrics flatline. Semantic sessions remain polite. The optimizer **DDoS-es itself**—and, in shared substrates, its neighbors.
 
-### 1.3.2 Recursive delegation loop
+### 1.4.2 Recursive delegation loop
 
 Expressive control-flow graphs require cycles: replan, reflect, retry. The loop
 
@@ -119,7 +150,7 @@ need not crash the runtime. It need not trip a transport timeout. It is **topolo
 
 This is the engineering truth behind "model hang": not mysticism, but **control-flow closure without a physical stop condition**.
 
-### 1.3.3 Context avalanche
+### 1.4.3 Context avalanche
 
 Even bounded depth does not bound **state volume**. Memory is part of the optimization state; monotonic context growth makes each subsequent step slower, costlier, and less predictable.
 
@@ -127,7 +158,7 @@ Classical rate limits measure **events per second**. Optimizer catastrophes scal
 
 ---
 
-## 1.4 Why the Answer Must Be Physical and Out-of-Band
+## 1.5 Why the Answer Must Be Physical and Out-of-Band
 
 Industry has converged on three insufficient patterns:
 
@@ -150,11 +181,11 @@ This is the same architectural move as placing congestion control **inside the t
 
 ---
 
-## 1.5 Protocol Positioning — What AFP Is Not
+## 1.6 Protocol Positioning — What AFP Is Not
 
 Industry discourse collapses **agent communication** into one bucket. AFP requires a finer partition—without claiming to be a fourth messaging standard.
 
-### 1.5.1 Three layers often conflated
+### 1.6.1 Three layers often conflated
 
 | Layer | Representative content | Protocol owner |
 |-------|------------------------|----------------|
@@ -166,7 +197,7 @@ Industry discourse collapses **agent communication** into one bucket. AFP requir
 
 AFP's formal split is **semantic collaboration (L5)** versus **physical consequence (L2–L4)**—Theorem 1.1. The A/B/C partition is the operational refinement: AFP does not specify chat (A) or business schemas (B); it supplies runtime law (C) as **PreFlight**, **GovernanceHeader**, and **persistent FSM consequences**.
 
-### 1.5.2 Trajectory constraint, not communication ban
+### 1.6.2 Trajectory constraint, not communication ban
 
 Enterprises are often misread as forbidding **Agent A → Agent B**. The sharper policy statement:
 
@@ -182,7 +213,7 @@ AFP is **not** a workflow engine. It does not mandate a fixed DAG. It does not a
 
 **Corollary:** Blocking A → D → F → A is recursion containment, not a veto on multi-agent collaboration.
 
-### 1.5.3 Runtime boundary, not workflow engine
+### 1.6.3 Runtime boundary, not workflow engine
 
 CPL attaches at **execution boundary** *B*—implemented as a sidecar process, not as a planner:
 
@@ -194,7 +225,7 @@ Agent runtime  →  AFP sidecar (SEA)  →  peer sidecar  →  Agent runtime
 
 The sidecar is a **runtime boundary**—physical interception before commit—not an orchestrator, not a DAG scheduler, not a semantic router.
 
-### 1.5.4 Sidecar enforcement, not mandatory central gateway
+### 1.6.4 Sidecar enforcement, not mandatory central gateway
 
 Zero trust does not uniquely imply a **central security gateway**. Service meshes (e.g. Istio) enforce trust at **per-pod sidecars**:
 
@@ -210,7 +241,7 @@ Agent  →  AFP Sidecar  →  mTLS  →  AFP Sidecar  →  Agent
 
 Both are zero trust; the **trust enforcement point** differs. AFP normative law places SEA at each node ( [`ARCHITECTURE.md`](../../ARCHITECTURE.md) §2). A central gateway MAY exist in enterprise topology, but it is **not** a protocol requirement.
 
-### 1.5.5 Control, data, and coordination planes
+### 1.6.5 Control, data, and coordination planes
 
 Frameworks historically merge **control** and **coordination**. AFP extracts coordination into an inspectable layer:
 
@@ -222,7 +253,7 @@ Frameworks historically merge **control** and **coordination**. AFP extracts coo
 
 **Terminology note:** Enterprise deployment docs use "control plane" for Operator / Policy Controller (L3 policy administration). That is distinct from the agent's planner control plane (L1).
 
-### 1.5.6 The question AFP answers
+### 1.6.6 The question AFP answers
 
 Mature stacks already answer: *How do agents move bytes and messages?*
 
@@ -234,7 +265,7 @@ Transport delivers. Signaling negotiates exposed intent (L5). AFP **governs befo
 
 ---
 
-## 1.6 Open Networks vs. Closed Administrations (A Scope Statement)
+## 1.7 Open Networks vs. Closed Administrations (A Scope Statement)
 
 This protocol document addresses **The Open Protocol problem**: mutually distrusting optimizers, no central moral authority, equilibrium under attack.
 
@@ -250,7 +281,7 @@ Kubernetes appears nowhere in the proof sketch. Neither do approval workflows. T
 
 ---
 
-## 1.7 From v1 Empirics to v2 Theory
+## 1.8 From v1 Empirics to v2 Theory
 
 Version 1.0 demonstrated survival: in Monte Carlo open-mesh conditions (500 nodes, 5% malicious, 100 epochs), baseline coordination collapsed to ~**0.4%** mean survivors while AFP-maintained topology sustained **100%**.
 
@@ -268,7 +299,7 @@ Subsequent chapters:
 
 ---
 
-## 1.8 Chapter Conclusion: The Naked Optimizer
+## 1.9 Chapter Conclusion: The Naked Optimizer
 
 Framework authors build stronger **intent engines**. Signaling authors refine **intent syntax**.
 

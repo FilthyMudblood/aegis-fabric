@@ -6,14 +6,36 @@
 [![GHCR Demo Agent](https://img.shields.io/badge/GHCR-demo--agent-2496ED?logo=docker&logoColor=white)](https://ghcr.io/filthymudblood/afp-demo-agent)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 
-### **企业级 Agent 网络的物理刹车片**
+### **企业级与 P2P Agent 网络的物理刹车片**
+*企业 multi-agent 今日可部署 · 协议层为开放 P2P 就绪*
 
 > **"TCP 治理数据包，AFP 治理优化器"**
 > *(TCP governs packets. AFP governs optimizers.)*
 
-**Aegis Fabric Protocol（AFP）** 是 Kubernetes 原生的**后果持久层（CPL）**——伴生 Sidecar 在意图变成不可逆网络 I/O **之前**，掐灭规划死循环、意图爆发与递归委派风暴。
+**Aegis Fabric Protocol（AFP）** 是**后果持久层（CPL）**——插在「Agent 能通信」和「系统能存活」之间的那一格**协调运行时**刹车。参考实现为 K8s Sidecar；**协议**对企业 multi-agent 与开放 P2P agent 网络通用。
 
 English · [`README.md`](README.md) · 白皮书 · **[v2 协议版](docs/whitepaper-v2/)** · [v1 Zenodo 存档](https://zenodo.org/records/20674352)
+
+### 市场空白
+
+Multi-agent 栈解决了**规划**（LangGraph、CrewAI）和**传输**（gRPC、Kafka、MCP、ASP）。都没解决**协调运行时**：
+
+> *这一步能不能执行？失控之后，后果能不能记住？*
+
+| 层次 | 状态 |
+|------|------|
+| 传输 | 已有解 — 字节送达 |
+| 语义协作 | 演进中 — ASP、A2A、MCP |
+| **协调运行时法则** | **空白 — AFP 填这一格** |
+
+| 场景 | AFP 回答什么 |
+|------|----------------|
+| **企业 multi-agent** | 在 Pod 内、出网前掐灭 planner 失控 —— 避免 OOM、Token 燃烧、重试雪崩 |
+| **P2P / 开放 agent 网络** | 零信任下：只准入物理上可持续的 peer；有毒节点隔离，防止跨节点传染 |
+
+> *Agent 学会了说话，网络学会了路由。**还没有人在优化器提交之前踩刹车，并记住它失控过。***
+
+*一套协议，两种 profile：* **closed mesh**（mTLS，以 PreFlight 为主）与 **open exchange**（GovernanceHeader、CVP、陌生人税）。见[白皮书第 4 章](docs/whitepaper-v2/chapter-04-open-network-topology.md)。
 
 ---
 
