@@ -89,6 +89,25 @@ CPL:          before next step → PreFlight → THROTTLED/ISOLATED (remembered)
 
 **Complement, not replace:** keep token budgets and dashboards. Add CPL where optimizers **commit**—with consequences that **persist** across hops and sessions.
 
+### Root causes: hallucination, optimizer behavior, or malice?
+
+AFP is **not** an anti-hallucination product. It does not judge whether a step was "factually wrong."
+
+| Failure mode | Typical root cause | Hallucination's role |
+|--------------|-------------------|----------------------|
+| **Out-of-control stacking** | Default optimize behavior—decompose, replan, retry, delegate—often **without** any false claim | **Sometimes accelerates** — invented tools, fake "not done" signals, spurious sub-delegation |
+| **Physical malice** (open mesh) | Prompt injection, abuse, adversarial peers, hit-and-run | **Usually not** — intentional or structural, not "the model misspoke" |
+
+Runaway loops frequently happen while the model is **coherently following** the graph: `retry on failure`, `break into subtasks`, `ask another agent`. Hallucination can **trigger** extra hops; **stacking geometry** amplifies them either way.
+
+```text
+Main agent   →  policy: "delegate and replan"     →  breadth / depth
+Sub-agent    →  local tool burst or recursion    →  entropy at one hop
+Hallucination →  wrong next step                  →  may ignite the loop; rarely the only cause
+```
+
+**CPL gates physics, not epistemics:** PreFlight reads depth, entropy, and burst—not whether the LLM "believed" the last message. Fact-checking and hallucination mitigation belong in **L5 / application** layers; AFP is the **L2 brake** that fires regardless of cognitive root cause.
+
 ---
 
 ## The Problem

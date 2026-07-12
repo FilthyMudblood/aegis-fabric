@@ -95,6 +95,21 @@ CPL path:            probe → PERMISSIVE | THROTTLED | ISOLATED → persist →
 
 **Corollary 1.1:** Token dashboards are the **fuel gauge**. CPL is the **brake with memory**. Fleets need both; conflating them exports stacking risk to the next scheduling epoch.
 
+### 1.0.5 Root causes — hallucination, optimizer defaults, or malice
+
+AFP is **not** an anti-hallucination layer. PreFlight does not score factual correctness of model outputs.
+
+| Failure | Dominant drivers | Role of hallucination |
+|---------|------------------|----------------------|
+| **Out-of-control stacking** | Default optimizer dynamics—decompose, replan, retry, delegate—often while the model is internally coherent | **Accelerant, not prerequisite** — invented tools, false completion signals, spurious re-delegation |
+| **Physical malice** | Prompt injection, abuse, adversarial peers, resource export attacks | **Usually orthogonal** — manipulation or economics, not confabulation |
+
+**Lemma 1.5 (Physics over epistemics):** Whether a planner step was "hallucinated" is an L5 semantic question. Whether it may execute without blowing depth, entropy, or neighbor viability is an L2 physical question. CPL adjudicates only the latter.
+
+Loops often close at **main ↔ sub-agent handoffs**: main policy keeps delegating; a sub-agent amplifies locally; hallucinated status may **trigger** the next hop—but **graph cycles and stacking** can run away without any single false sentence.
+
+**Corollary 1.2:** Hallucination mitigation and fact-checking belong beside ASP in the semantic layer. They **complement** CPL; they do not replace persistent pre-intent brakes.
+
 ---
 
 ## 1.1 Manifesto
