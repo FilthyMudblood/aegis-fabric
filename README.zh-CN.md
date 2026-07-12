@@ -44,6 +44,60 @@ Application intent  →  UDS PreFlightCheck  →  ALLOW | THROTTLE | ISOLATED
                     CRD law + gRPC injunction
 ```
 
+## CPL 本质是什么？
+
+**后果持久层（CPL）** 不是又一个网关或审批界面。它是 AFP 在**运行时边界**上执法的层——**带记忆的物理约束**，在 intent 变成不可逆动作**之前**生效。
+
+### 三要素
+
+| 维度 | CPL 是什么 |
+|------|------------|
+| **空间** | 贴在**执行边界**（Planner ↔ Sidecar）——带外，不走 HTTP/ASP 带内通道 |
+| **时间** | **意图前（Pre-intent）**——工具调用、委派、出网 I/O 之前 |
+| **状态** | `PERMISSIVE` · `THROTTLED` · `ISOLATED` 跨 scheduling epoch 持续，直到 FSM 恢复 |
+
+```text
+请求结束  ≠  后果清除
+```
+
+Sidecar 通过每节点唯一的 **SEA（单一执法权威）** 实现 CPL。
+
+### 解决的本质问题
+
+危险已搬进**优化器内部**：递归、任务爆发、上下文膨胀往往**没有流量**，却在烧 CPU、内存和 Token。TCP、HTTP、ASP 看的是**消息**，不是**优化轨迹**。按请求放行/拒绝会**遗忘**；优化器会把工作拆成无数「合法小步」来绕过。
+
+CPL 回答一个问题：
+
+> **谁在优化器「动手优化」之前管它？**
+
+### 怎么工作
+
+```text
+ReportInternalState（深度、上下文字节）
+        ↓
+PreFlight（同步）→ EntropyMonitor → SEA + FSM
+        ↓
+PERMISSIVE | THROTTLED + delay | ISOLATED
+```
+
+1. **测量** — 本地物理量：递归深度、熵负载、爆发 hint（不单信自报）
+2. **关卡** — 同步 PreFlight；Planner 必须等裁决
+3. **记忆** — FSM 按 agent/peer 持久；隔离不会因下一次「礼貌会话」自动解除
+
+### 「防止坏 intent」在这里指什么
+
+AFP **不判断** intent 在语义或道德上是否「坏」。它拦截的是**物理上不可持续**的优化器行为：
+
+| 病理 | CPL 响应 |
+|------|----------|
+| 递归委派环（`A→D→F→A`） | 超过 `maxRecursionDepth` → **ISOLATED** |
+| 意图爆发（上万内部 Task） | 熵 / burst 压力 → **THROTTLED** 或熔断 |
+| 上下文雪崩逼近 OOM | 内存 + 上下文字节 → **THROTTLED** / **ISOLATED** |
+
+摩擦在**提交之前**施加，且**后果可持久**——失控轨迹无法靠拆成语法合法的小步来逃避。
+
+理论全文：[白皮书 v2 · 第 2 章 CPL](docs/whitepaper-v2/chapter-02-consequence-persistence-layer.md) · [第 3 章 意图前执法](docs/whitepaper-v2/chapter-03-pre-intent-enforcement.md)
+
 ---
 
 ## AFP 与 Argent Signaling Protocol (ASP) 的区别

@@ -46,6 +46,60 @@ Application intent  →  UDS PreFlightCheck  →  ALLOW | THROTTLE | ISOLATED
                     CRD law + gRPC injunction
 ```
 
+## What is CPL?
+
+**Consequence Persistence Layer (CPL)** is not another gateway or approval UI. It is the **runtime boundary** where AFP enforces **physical law with memory**—before intent becomes irreversible action.
+
+### Essence
+
+| Dimension | What CPL is |
+|-----------|-------------|
+| **Where** | At the **execution boundary** (planner ↔ sidecar)—out-of-band, not inside HTTP/ASP |
+| **When** | **Pre-intent**—before tool calls, delegation, or outbound I/O |
+| **What sticks** | `PERMISSIVE` · `THROTTLED` · `ISOLATED` survive scheduling epochs until FSM recovery |
+
+```text
+Request ends  ≠  consequence clears
+```
+
+The sidecar implements CPL through a single **SEA (Single Execution Authority)** per node.
+
+### The essential problem
+
+Danger moved **inside the optimizer**: recursion, task bursts, and context growth often produce **no wire traffic** while burning CPU, memory, and tokens. TCP, HTTP, and ASP observe **messages**—not **optimization trajectories**. Per-request allow/deny **forgets**; optimizers exploit that by fragmenting work across requests.
+
+CPL answers one question:
+
+> **Who governs the optimizer before it optimizes?**
+
+### How it works
+
+```text
+ReportInternalState (depth, context bytes)
+        ↓
+PreFlight (synchronous) → EntropyMonitor → SEA + FSM
+        ↓
+PERMISSIVE | THROTTLED + delay | ISOLATED
+```
+
+1. **Measure** — local physics: recursion depth, entropy load, task burst hints (not self-report alone)
+2. **Gate** — synchronous PreFlight; the planner waits for the verdict
+3. **Remember** — FSM state persists per agent/peer; isolation is not cleared by the next polite session
+
+### What "prevent bad intent" means here
+
+AFP does **not** judge whether an intent is morally or semantically "bad." It blocks **physically unsustainable** optimizer behavior:
+
+| Pathology | CPL response |
+|-----------|----------------|
+| Recursive delegation loop (`A→D→F→A`) | `maxRecursionDepth` → **ISOLATED** |
+| Intent burst (10k internal tasks) | Entropy / burst pressure → **THROTTLED** or circuit breaker |
+| Context avalanche toward OOM | Memory + context bytes → **THROTTLED** / **ISOLATED** |
+
+Friction applies **before commit**, with **persistent consequences**—so runaway trajectories cannot evade by splitting into syntactically valid micro-steps.
+
+Theory: [Whitepaper v2 · Chapter 2 — CPL](docs/whitepaper-v2/chapter-02-consequence-persistence-layer.md) · [Chapter 3 — Pre-Intent](docs/whitepaper-v2/chapter-03-pre-intent-enforcement.md)
+
 ---
 
 ## AFP vs Argent Signaling Protocol (ASP)
