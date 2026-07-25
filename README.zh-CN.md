@@ -169,6 +169,13 @@ PERMISSIVE | THROTTLED + delay | ISOLATED
 1. **测量** — 本地物理量：递归深度、熵负载、爆发 hint（不单信自报）
 2. **关卡** — 同步 PreFlight；Planner 必须等裁决
 3. **记忆** — FSM 按 agent/peer 持久；隔离不会因下一次「礼貌会话」自动解除
+4. **非对称恢复** — 跌落瞬时；Isolated → Probation 需 `k_isolation`（64）个 epoch，且后续 DROP **不刷新** penalty 时钟；Probation → Permissive 需 `k_probation`（128）**且** `CVP ≥ 0.8`。试探期中途熵尖峰会再隔离（防 thrashing）。
+
+### 开放网 Gossip（最小版）
+
+首次隔离时可向高 CVP 的 core relay 发出带签的 `TopologyWarning`。**入站：** 无签名或 ed25519 验签失败的流言当噪声丢弃；伪造签名会崖式扣减声称 reporter 的 CVP。跨节点线传输仍在加固（见 [`ROADMAP.md`](ROADMAP.md)）。
+
+理论：[白皮书 §3 FSM](docs/whitepaper-v2/whitepaper-v2-protocol-edition.md#pre-intent-enforcement) · [§4 gossip](docs/whitepaper-v2/whitepaper-v2-protocol-edition.md#open-network-topology)
 
 ### 「防止坏 intent」在这里指什么
 
@@ -257,6 +264,8 @@ Agent  →  AFP Sidecar  →  mTLS  →  AFP Sidecar  →  Agent
 ```
 
 信任 enforcement 在 **Sidecar**（本地 PreFlight、入站 GovernanceHeader）——与每 Pod 旁 Envoy 同一问责模型。中央网关与 Sidecar Mesh 都可以是零信任；AFP 选择**每节点执法**。
+
+**开放 profile 附加：** 入站陌生人税 + CVP 地板；带签拓扑流言（验签失败即丢）。CVP 仍是**每个 Sidecar 的本地账本**——多副本不共享全局后果存储。
 
 ### 三个 Plane（勿混用）
 

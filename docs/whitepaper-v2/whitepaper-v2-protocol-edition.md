@@ -1,10 +1,12 @@
 # Aegis Fabric Protocol v2.0 — Protocol Edition
 
-> **Draft v0.2** · *A Physical Constraint Protocol for Autonomous Optimizers*
+> **Draft v0.3** · *A Physical Constraint Protocol for Autonomous Optimizers*
 >
 > Normative stack, objects, and code map: [`ARCHITECTURE.md`](../../ARCHITECTURE.md)
 >
 > **v1** (empirical archive): [Zenodo 20674352](https://zenodo.org/records/20674352)
+>
+> **v0.3 notes:** Asymmetric FSM recovery dwell is normative in reference impl; inbound `TopologyWarning` MUST be ed25519-verified (unsigned hearsay discarded).
 
 ---
 
@@ -927,7 +929,11 @@ epoch − last_penalty ≥ k_isolation   ⇒  Probationary, ActionLowFrequencyPr
 
 Reference hysteresis: `k_isolation = 64` epochs before probation entry. Isolation is not cleared by a single low-entropy probe—**time at the penalty epoch** must elapse.
 
+**Penalty-clock law:** `last_penalty` is stamped only when **entering** Isolated (including re-isolation from Probationary). Subsequent `ActionDropPacket` epochs MUST NOT refresh the clock. Refreshing under continuous bad traffic would starve recovery forever; dwell is a physical time-at-penalty requirement, not a “last seen malice” sliding window.
+
 **Lemma 3.3 (Isolation monotonicity):** Restated from Chapter 2, Lemma 2.2—no well-formed PreFlightRequest alone restores Permissive from Isolated.
+
+**Lemma 3.4 (Anti-thrashing):** Instantaneous degrade (`d(Degradation)/dt` large) with slow recovery (`Δt ≥ k_isolation` then `Δt > k_probation` and `CVP ≥ 0.8`) makes Isolated ↔ Permissive oscillation economically unattractive: a mid-probation entropy spike re-isolates and **restarts** the dwell clocks.
 
 #### 3.5.5 State Probationary
 
@@ -938,9 +944,9 @@ entropy_load > E_safe           ⇒  enforceIsolation()  // zero tolerance spike
 else                            ⇒  ActionLowFrequencyProbe / THROTTLED
 ```
 
-Reference: `k_probation = 128` epochs. Probation is **low-frequency probe** mode—intent generation damped, CVP recovers via Formula C.
+Reference: `k_probation = 128` epochs. Probation is **low-frequency probe** mode—intent generation damped, CVP recovers via Formula C. Ingress admits probes only when `current_epoch ≡ 0 (mod 10)` (reference); other epochs reject without advancing recovery shortcuts.
 
-Any entropy above `E_safe` during probation re-isolates immediately. Recovery to Permissive requires **both** sustained low entropy **and** restored trust.
+Any entropy above `E_safe` during probation re-isolates immediately and resets `last_penalty`. Recovery to Permissive requires **both** sustained low entropy **and** restored trust (`CVP_score ≥ 0.8` after the probation dwell). Early exit with high CVP alone is forbidden.
 
 #### 3.5.6 FSM + ACC composition
 
@@ -1241,7 +1247,7 @@ Subsequent epochs while the peer remains isolated emit **ActionDropPacket** only
 
 #### 4.6.2 Preemptive decay on warning receipt
 
-When a node receives a validated TopologyWarning naming peer *p*, it applies **preemptive CVP decay** before *p*'s traffic triggers local isolation:
+When a node receives a **validated** TopologyWarning naming peer *p*, it applies **preemptive CVP decay** before *p*'s traffic triggers local isolation:
 
 ```text
 CVP_n(p) ← CVP_n(p) × η_decay     // reference: η_decay = 0.5
@@ -1249,7 +1255,22 @@ CVP_n(p) ← CVP_n(p) × η_decay     // reference: η_decay = 0.5
 
 **Intuition:** Neighbors learn of toxicity **out-of-band** and tighten admission proactively—containment spreads at gossip speed, not at the speed of the next malicious payload.
 
-Signature verification on warnings is normative; cryptographic binding of `topology_consensus_hash` is an open specification gap (Chapter 5; [`ARCHITECTURE.md`](../../ARCHITECTURE.md) §8).
+**Inbound verification law (minimal anti-poisoning):**
+
+```text
+signature empty                         ⇒ discard as noise (line rate)
+reporter public key unknown             ⇒ discard
+ed25519 verify(reporter_pub, payload) fails
+                                        ⇒ discard; cliff-penalize claimed reporter CVP
+                                        // reference: × 0.25
+(reporter_id, isolated_peer_id, epoch) duplicate
+                                        ⇒ discard (no double decay)
+else                                    ⇒ accept; apply η_decay to isolated peer
+```
+
+Canonical signed payload: `reporter_id || 0x00 || isolated_peer_id || 0x00 || epoch_be64`. The **reporter** signs with its private key; receivers verify with the reporter's registered public key. Unverified hearsay MUST NOT mutate Neighbor Store trust.
+
+Cryptographic binding of GovernanceHeader `topology_consensus_hash` remains a separate open gap (Chapter 5; [`ARCHITECTURE.md`](../../ARCHITECTURE.md) §8).
 
 #### 4.6.3 Probation at the mesh edge
 
@@ -1276,6 +1297,10 @@ Only core relays receive TopologyWarning propagation. They apply preemptive deca
 #### 4.7.2 Async propagation
 
 Gossip MUST NOT block the data-plane fast path. Broadcast is **asynchronous** relative to ingress DROP—local quarantine is immediate; mesh learning is eventual.
+
+Egress MUST sign `TopologyWarning` before any emit attempt. Reference implementation: ed25519 identity bound to local DID; unsigned outbound construction is refused.
+
+Wire fan-out to core-relay endpoints (UDP/TCP) remains an open transport gap—signing and inbound verification are closed; packet delivery across the mesh is not yet normative in the reference dataplane.
 
 This matches the post-stateless era observation (Chapter 1): one scheduling cycle is enough for local harm; gossip races to inform neighbors **before** contagion composes across hops.
 
@@ -1597,16 +1622,16 @@ Implementations MAY substitute equivalent local IPC; **timing contract** (Chapte
 
 `version` governs protobuf schema compatibility. Minor additions MUST use optional fields or reserved numbers. Breaking changes increment major version; receivers reject unsupported majors.
 
-#### 5.6.2 Open specification gaps (v1.0)
+#### 5.6.2 Open specification gaps (v1.0 / reference status)
 
 | Gap | Status | Target |
 |-----|--------|--------|
 | Cryptographic binding of `topology_consensus_hash` | Placeholder in reference impl | §5.2.2; formal attestation spec |
-| Gossip P2P transport for TopologyWarning | Constructed, not sent | Chapter 4 §4.7 |
-| Signed TopologyWarning verification | Stub | Paired with hash attestation |
+| Gossip P2P transport for TopologyWarning | Signed + verified inbound; **wire send TODO** | Chapter 4 §4.7.2 |
+| Signed TopologyWarning verification | **Closed** (ed25519; unsigned discarded) | Chapter 4 §4.6.2 |
 | Payload forwarding after ALLOW | Reference TODO | Enterprise guide; not L2 wire blocker |
 
-These gaps do not relax **local** enforcement law—they define incomplete **mesh attestation** hardening.
+Local FSM asymmetric recovery (`k_isolation`, `k_probation`, anti-thrashing) is **implemented and tested** in the reference control plane—not listed as a gap.
 
 #### 5.6.3 ACC on the wire
 
@@ -1906,4 +1931,4 @@ Semantic signaling remains necessary. ASP remains load-bearing. AFP remains the 
 
 ---
 
-*AFP Whitepaper v2.0 · Protocol Edition · Draft v0.2 · Strategic separation from enterprise deployment documentation.*
+*AFP Whitepaper v2.0 · Protocol Edition · Draft v0.3 · Strategic separation from enterprise deployment documentation.*

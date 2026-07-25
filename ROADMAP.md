@@ -46,7 +46,7 @@
 
 | Item | Why | Notes |
 |------|-----|-------|
-| **P2P gossip transport** | Topology store exists; UDP/TCP broadcast TODO | Full topological quarantine at scale |
+| **P2P gossip transport** | Inbound ed25519 verify + unsigned drop **done**; UDP/TCP fan-out TODO | Full topological quarantine at scale |
 | **Open-exchange stranger tax** | Mode exists; hardening for untrusted peers | Collateral / probation FSM production paths |
 | **Formal verification** | Monte Carlo empirical proof exists | TLA+ / model-check ACC kernel bounds |
 

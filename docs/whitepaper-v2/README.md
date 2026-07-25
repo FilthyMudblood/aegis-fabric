@@ -2,7 +2,7 @@
 
 ## Read the whitepaper
 
-**[whitepaper-v2-protocol-edition.md](./whitepaper-v2-protocol-edition.md)** — complete unified document (Draft v0.2)
+**[whitepaper-v2-protocol-edition.md](./whitepaper-v2-protocol-edition.md)** — complete unified document (Draft v0.3)
 
 Normative protocol specification (stack diagrams, object schemas, code map): **[`ARCHITECTURE.md`](../../ARCHITECTURE.md)** at repository root.
 

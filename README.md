@@ -182,6 +182,13 @@ PERMISSIVE | THROTTLED + delay | ISOLATED
 1. **Measure** — local physics: recursion depth, entropy load, task burst hints (not self-report alone)
 2. **Gate** — synchronous PreFlight; the planner waits for the verdict
 3. **Remember** — FSM state persists per agent/peer; isolation is not cleared by the next polite session
+4. **Recover asymmetrically** — degrade is instant; Isolated → Probation needs `k_isolation` (64) epochs without refreshing the penalty clock on every drop; Probation → Permissive needs `k_probation` (128) **and** `CVP ≥ 0.8`. Mid-probation entropy spikes re-isolate (anti-thrashing).
+
+### Open-mesh gossip (minimal)
+
+On first isolate, the sidecar may emit a signed `TopologyWarning` to high-CVP core relays. **Inbound:** unsigned or invalid ed25519 warnings are discarded as noise; forged signatures cliff-penalize the claimed reporter. Wire fan-out across peers is still hardening (see [`ROADMAP.md`](ROADMAP.md)).
+
+Theory: [Whitepaper §3 — Pre-Intent / FSM](docs/whitepaper-v2/whitepaper-v2-protocol-edition.md#pre-intent-enforcement) · [§4 — gossip](docs/whitepaper-v2/whitepaper-v2-protocol-edition.md#open-network-topology)
 
 ### What "prevent bad intent" means here
 
@@ -279,6 +286,8 @@ Agent  →  AFP Sidecar  →  mTLS  →  AFP Sidecar  →  Agent
 ```
 
 Trust enforcement lives at the **sidecar** (PreFlight locally, GovernanceHeader on ingress)—the same accountability model as Envoy beside each pod. Central gateways and sidecar meshes are both zero trust; AFP chooses **per-node enforcement**.
+
+**Open profile extras:** stranger tax + CVP floor on ingress; signed topology gossip for quarantine rumors (verify-or-drop). CVP remains a **local** ledger per sidecar—replicas do not share one global consequence store.
 
 ### Three planes (do not conflate)
 
