@@ -1,26 +1,14 @@
-# AFP Whitepaper v2.0 — Protocol Edition
+# Aegis Fabric Protocol Whitepaper v2.0 — Protocol Edition
 
-## Canonical architecture
+## Read the whitepaper
 
-**Repository root [`ARCHITECTURE.md`](../../ARCHITECTURE.md)** is the normative protocol specification (stack, objects, paths, reference map).
+**[whitepaper-v2-protocol-edition.md](./whitepaper-v2-protocol-edition.md)** — GitHub Protocol Edition (Draft v0.3)
 
-This directory holds **narrative drafts** (theory, proofs, chapter prose). Do not duplicate stack diagrams here—link to root.
+Narrative-first English edition: full names in prose, mechanisms explained in-line, reader glossary with “short for” expansions.
 
----
+Implementer diagrams, protobuf schemas, and code map: **[`ARCHITECTURE.md`](../../ARCHITECTURE.md)** at repository root (supplementary—not a substitute for the whitepaper body).
 
-## Files
-
-| File | Role |
-|------|------|
-| [../../ARCHITECTURE.md](../../ARCHITECTURE.md) | **Protocol spec** — Mermaid stack, formal objects, code map |
-| [chapter-01-optimization-crisis.md](./chapter-01-optimization-crisis.md) | Ch.1 draft v0.2 |
-| [chapter-02-consequence-persistence-layer.md](./chapter-02-consequence-persistence-layer.md) | Ch.2 draft v0.2 |
-| [chapter-03-pre-intent-enforcement.md](./chapter-03-pre-intent-enforcement.md) | Ch.3 draft v0.2 |
-| [chapter-04-open-network-topology.md](./chapter-04-open-network-topology.md) | Ch.4 draft v0.2 |
-| [chapter-05-governance-header-wire-semantics.md](./chapter-05-governance-header-wire-semantics.md) | Ch.5 draft v0.2 |
-| [chapter-06-empirical-baseline.md](./chapter-06-empirical-baseline.md) | Ch.6 draft v0.2 |
-| chapter-01-crisis-of-intent.md | Ch.1 superseded v0.1 |
-| ARCHITECTURE.md (this folder) | **Deprecated mirror** — use root instead |
+**v1** (empirical baseline, archived): [Zenodo 20674352](https://zenodo.org/records/20674352)
 
 ---
 
@@ -28,20 +16,32 @@ This directory holds **narrative drafts** (theory, proofs, chapter prose). Do no
 
 | Track | Audience |
 |-------|----------|
-| **Protocol** (whitepaper + root ARCHITECTURE) | Researchers, protocol engineers |
+| **Protocol** (this whitepaper + root ARCHITECTURE) | Researchers, protocol engineers, GitHub readers |
 | **Enterprise** (README, deploy/kubernetes) | Platform, security, compliance |
 
-**Protocol writing bans:** K8s nouns in whitepaper body; use L3 “Policy Surface” abstraction.
+**Writing rules for the GitHub whitepaper:**
+
+- Prefer **full names** in body prose (e.g. Single Execution Authority, Consequence Persistence Layer, Coordination Viability Probability).
+- Glossary states what each short form is **short for**; do not force readers to memorize acronyms.
+- Do not replace mechanism explanation with “see ARCHITECTURE”—put the control law in the whitepaper; ARCHITECTURE holds diagrams/schemas/code map.
+- No Kubernetes nouns in whitepaper body; use “Policy Surface” abstraction.
 
 ---
 
-## Chapter plan
+## Contents (single document)
 
-1. ✅ The Optimization Crisis
-2. ✅ Consequence Persistence Layer
-3. ✅ Pre-Intent Enforcement
-4. ✅ Open-Network Topology
-5. ✅ Governance Header & Wire Semantics
-6. ✅ Empirical Baseline
+1. The Optimization Crisis
+2. Consequence Persistence Layer
+3. Pre-Intent Enforcement
+4. Open-Network Topology
+5. Governance Header & Wire Semantics
+6. Empirical Baseline
 
-**v1** (empirical baseline, archived): [Zenodo 20674352](https://zenodo.org/records/20674352)
+---
+
+## Archive
+
+| File | Note |
+|------|------|
+| `archive/chapter-*.md` | Superseded split drafts — retained for history only; do not edit |
+| `ARCHITECTURE.md` (this folder) | Deprecated pointer — use root [`ARCHITECTURE.md`](../../ARCHITECTURE.md) |

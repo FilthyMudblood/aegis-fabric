@@ -9,7 +9,7 @@ This document is the **technical contract** between:
 | Document | Role |
 |----------|------|
 | **This file (`ARCHITECTURE.md`)** | Protocol stack, core objects, enforcement paths — **language-agnostic** |
-| **Whitepaper v2.0 (Protocol Edition)** | Theory, proofs, open-network equilibrium — [`docs/whitepaper-v2/`](docs/whitepaper-v2/) |
+| **Whitepaper v2.0 (Protocol Edition)** | Theory, proofs, open-network equilibrium — [`docs/whitepaper-v2/whitepaper-v2-protocol-edition.md`](docs/whitepaper-v2/whitepaper-v2-protocol-edition.md) |
 | **Enterprise Deployment Guide** | K8s, GitOps, compliance — separate handbook (`README.md`, `deploy/kubernetes/`) |
 | **`CODEBASE.md`** | Repository navigation and file paths |
 
@@ -400,9 +400,13 @@ This repository (PR-1 through PR-6c) is one conforming implementation. Paths bel
 | Gap | Status | Target |
 |-----|--------|--------|
 | Cryptographic attestation for `topology_consensus_hash` | Placeholder in reference impl | Whitepaper Ch.5 |
+| Gossip `TopologyWarning` wire transport | Signed + inbound verify; send TODO | Whitepaper §4.7 |
+| Signed TopologyWarning verification | **Closed** (ed25519; unsigned discarded) | Whitepaper §4.6.2 |
 | Ingress → runtime payload forwarding | Not closed (`io.Copy` TODO) | Enterprise guide |
 | Normative Policy Surface RPC | Implemented, not IETF-style spec'd | Whitepaper appendix |
 | On-chain CVP collateral | Architectural only | Whitepaper Ch.4 footnote |
+
+Asymmetric FSM recovery (`k_isolation` / `k_probation` / anti-thrashing) is implemented in `internal/control` — not an open gap.
 
 ---
 
@@ -414,7 +418,7 @@ This repository (PR-1 through PR-6c) is one conforming implementation. Paths bel
 | [CODEBASE.md](CODEBASE.md) | Repository layout and commands |
 | [ROADMAP.md](ROADMAP.md) | Phase 3 hardening backlog |
 | [Whitepaper v1 (Zenodo)](https://zenodo.org/records/20674352) | Published empirical baseline (archived) |
-| [Whitepaper v2 (Protocol Edition)](docs/whitepaper-v2/) | Theory chapters · Draft v0.2 |
+| [Whitepaper v2 (Protocol Edition)](docs/whitepaper-v2/whitepaper-v2-protocol-edition.md) | Unified theory document · Draft v0.3 |
 
 ---
 

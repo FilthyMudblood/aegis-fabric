@@ -6,14 +6,100 @@
 [![GHCR Demo Agent](https://img.shields.io/badge/GHCR-demo--agent-2496ED?logo=docker&logoColor=white)](https://ghcr.io/filthymudblood/afp-demo-agent)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 
-### **企业级 Agent 网络的物理刹车片**
+### **企业级与 P2P Agent 网络的物理刹车片**
+*企业 multi-agent 今日可部署 · 协议层为开放 P2P 就绪*
 
 > **"TCP 治理数据包，AFP 治理优化器"**
 > *(TCP governs packets. AFP governs optimizers.)*
 
-**Aegis Fabric Protocol（AFP）** 是 Kubernetes 原生的**后果持久层（CPL）**——伴生 Sidecar 在意图变成不可逆网络 I/O **之前**，掐灭规划死循环、意图爆发与递归委派风暴。
+**Aegis Fabric Protocol（AFP）** 是**后果持久层（CPL）**——插在「Agent 能通信」和「系统能存活」之间的那一格**协调运行时**刹车。参考实现为 K8s Sidecar；**协议**对企业 multi-agent 与开放 P2P agent 网络通用。
 
-English · [`README.md`](README.md) · 白皮书 · **[v2 协议版](docs/whitepaper-v2/)** · [v1 Zenodo 存档](https://zenodo.org/records/20674352)
+English · [`README.md`](README.md) · 白皮书 · **[v2 Protocol Edition（英文）](docs/whitepaper-v2/whitepaper-v2-protocol-edition.md)** · [v1 Zenodo 存档](https://zenodo.org/records/20674352)
+
+### 市场空白
+
+Multi-agent 栈解决了**规划**（LangGraph、CrewAI）和**传输**（gRPC、Kafka、MCP、ASP）。都没解决**协调运行时**：
+
+> *这一步能不能执行？失控之后，后果能不能记住？*
+
+| 层次 | 状态 |
+|------|------|
+| 传输 | 已有解 — 字节送达 |
+| 语义协作 | 演进中 — ASP、A2A、MCP |
+| **协调运行时法则** | **空白 — AFP 填这一格** |
+
+| 场景 | AFP 回答什么 |
+|------|----------------|
+| **企业 multi-agent** | 在 Pod 内、出网前掐灭 planner 失控 —— 避免 OOM、Token 燃烧、重试雪崩 |
+| **P2P / 开放 agent 网络** | 零信任下：只准入物理上可持续的 peer；有毒节点隔离，防止跨节点传染 |
+
+> *Agent 学会了说话，网络学会了路由。**还没有人在优化器提交之前踩刹车，并记住它失控过。***
+
+*一套协议，两种 profile：* **closed mesh**（mTLS，以 PreFlight 为主）与 **open exchange**（GovernanceHeader、CVP、陌生人税）。见[白皮书 §4](docs/whitepaper-v2/whitepaper-v2-protocol-edition.md#open-network-topology)。
+
+### 为什么 Agent 堆叠需要「有记忆」
+
+**Agent 堆叠**——`Planner → A → B → C → …`——风险随跳数复利。每一步单独看可能都「合法」，但深度、队列压力、上下文在累积，不一定表现为某一条「坏消息」：
+
+```text
+堆叠风险  ≈  深度 × 分支 × 上下文 × peer 传染
+```
+
+按请求放行的网关会**遗忘**。优化器会把工作拆成无数语法合法的小步来绕过。CPL 把后果绑在 **agent/peer 身份**上，堆叠失控无法靠「每一跳都很礼貌」来洗白。
+
+| 对象 | CPL 管什么 | CPL 不判断什么 |
+|------|------------|----------------|
+| **失控** | 递归环、意图爆发、上下文雪崩逼近 OOM | — |
+| **物理恶意**（开放网） | peer 洪水、hit-and-run 陌生人——CVP、陌生人税、gossip | 消息内容的语义善恶 |
+| **允许的堆叠** | 策略内的 `Planner → A → B → C` | 每一步业务上是否「该做」 |
+
+### 生产里：偶发还是常态？
+
+| 风险类型 | 企业 multi-agent | 开放 P2P 网 |
+|----------|------------------|-------------|
+| **堆叠失控** | **常见** — 分解与委派是优化器默认行为，不是罕见 bug | **常见** — 传染放大本地失控 |
+| **物理恶意** | **相对少** — 多为误配、滥用、prompt 注入；非常态对抗 peer | **需当真** — 陌生人、洪水、hit-and-run |
+
+失控有两种形态：**偶发尖峰**（某次 replan 死循环、某次 burst）和**结构性渗漏**（7×24 agent fleet 无运行时刹车，持续漏钱）。AFP 针对的是**堆叠的规模律**——跳数越多，物理越先穿——不是「Agent 天天作恶」的恐吓叙事。
+
+> **实话实说：** 不是因为 Agent 每天都很坏才需要 AFP，而是因为**堆叠后的优化器 routinely 跑赢 retry、Token 看板和按请求限流**。
+
+### 为什么 retry、Token 上限和监控不够
+
+`max_retries`、`recursion_limit`、Token 预算是**必要遥测**，但对 multi-agent 堆叠**不足以当刹车**：
+
+| 手段 | 能帮到 | 结构性缺口 |
+|------|--------|------------|
+| **Retry / 循环计数** | 单进程、单图里的环 | 随 session 清零；看不见跨 Agent 链；一次 retry 内部仍可能爆发 |
+| **Token / 成本封顶** | 花超了再停 | **事后** — 步骤已提交才计数；内部队列可能尚未体现为 Token |
+| **指标与告警** | 发现事故 | **先执行后告警** — 至少晚一个 cycle；无 peer 级持久后果 |
+| **框架内护栏** | 开发时自声明 | 进程内、不可移植、入站 mesh 不可执法 |
+
+```text
+监控：  步骤已提交 → 数 Token → 告警 → 停（本轮）
+CPL：   下一步之前 → PreFlight → 节流/隔离（且记住）
+```
+
+**互补，不替代：** 保留 Token 预算与看板；在优化器 **commit** 处叠加 CPL，后果跨 hop、跨 session **可持久**。
+
+### 根因：幻觉、优化器行为，还是恶意？
+
+AFP **不是**反幻觉产品，不判断某一步是否「事实错误」。
+
+| 失效模式 | 常见根因 | 幻觉扮演的角色 |
+|----------|----------|----------------|
+| **堆叠失控** | 优化器默认行为——分解、replan、retry、委派——**不必**先产生虚假陈述 | **有时加剧** — 编造工具、误判未完成、错误再委派 |
+| **物理恶意**（开放网） | Prompt 注入、滥用、对抗 peer、hit-and-run | **通常无关** — 多为故意或结构性问题，不是「模型说错话」 |
+
+死循环常常发生在模型**忠实执行图逻辑**时：`失败重试`、`拆子任务`、`再问一个 Agent`。幻觉可能**点燃**多余 hop；**堆叠几何**不论根因都会放大。
+
+```text
+Main agent    →  策略：「委派并 replan」     →  广度 / 深度
+Sub-agent     →  本地工具爆发或递归        →  单跳熵压
+幻觉          →  选错下一步                →  可能点火；很少是唯一原因
+```
+
+**CPL 卡的是物理，不是认识论：** PreFlight 读深度、熵、burst——不读 LLM「信不信上一句」。事实核查与幻觉缓解属于 **L5 / 应用层**；AFP 是无论认知根因如何都会触发的 **L2 刹车**。
 
 ---
 
@@ -43,6 +129,69 @@ Application intent  →  UDS PreFlightCheck  →  ALLOW | THROTTLE | ISOLATED
                               ↑
                     CRD law + gRPC injunction
 ```
+
+## CPL 本质是什么？
+
+**后果持久层（CPL）** 不是又一个网关或审批界面。它是 AFP 在**运行时边界**上执法的层——**带记忆的物理约束**，在 intent 变成不可逆动作**之前**生效。
+
+### 三要素
+
+| 维度 | CPL 是什么 |
+|------|------------|
+| **空间** | 贴在**执行边界**（Planner ↔ Sidecar）——带外，不走 HTTP/ASP 带内通道 |
+| **时间** | **意图前（Pre-intent）**——工具调用、委派、出网 I/O 之前 |
+| **状态** | `PERMISSIVE` · `THROTTLED` · `ISOLATED` 跨 scheduling epoch 持续，直到 FSM 恢复 |
+
+```text
+请求结束  ≠  后果清除
+```
+
+Sidecar 通过每节点唯一的 **SEA（单一执法权威）** 实现 CPL。
+
+### 解决的本质问题
+
+危险已搬进**优化器内部**：递归、任务爆发、上下文膨胀往往**没有流量**，却在烧 CPU、内存和 Token。TCP、HTTP、ASP 看的是**消息**，不是**优化轨迹**。按请求放行/拒绝会**遗忘**；优化器会把工作拆成无数「合法小步」来绕过。
+
+CPL 回答一个问题：
+
+> **谁在优化器「动手优化」之前管它？**
+
+### 怎么工作
+
+```text
+ReportInternalState（深度、上下文字节）
+        ↓
+PreFlight（同步）→ EntropyMonitor → SEA + FSM
+        ↓
+PERMISSIVE | THROTTLED + delay | ISOLATED
+```
+
+1. **测量** — 本地物理量：递归深度、熵负载、爆发 hint（不单信自报）
+2. **关卡** — 同步 PreFlight；Planner 必须等裁决
+3. **记忆** — FSM 按 agent/peer 持久；隔离不会因下一次「礼貌会话」自动解除
+4. **非对称恢复** — 跌落瞬时；Isolated → Probation 需 `k_isolation`（64）个 epoch，且后续 DROP **不刷新** penalty 时钟；Probation → Permissive 需 `k_probation`（128）**且** `CVP ≥ 0.8`。试探期中途熵尖峰会再隔离（防 thrashing）。
+
+### 开放网 Gossip（最小版）
+
+首次隔离时可向高 CVP 的 core relay 发出带签的 `TopologyWarning`。**入站：** 无签名或 ed25519 验签失败的流言当噪声丢弃；伪造签名会崖式扣减声称 reporter 的 CVP。跨节点线传输仍在加固（见 [`ROADMAP.md`](ROADMAP.md)）。
+
+理论：[白皮书 §3 FSM](docs/whitepaper-v2/whitepaper-v2-protocol-edition.md#pre-intent-enforcement) · [§4 gossip](docs/whitepaper-v2/whitepaper-v2-protocol-edition.md#open-network-topology)
+
+### 「防止坏 intent」在这里指什么
+
+AFP **不判断** intent 在语义或道德上是否「坏」。它拦截的是**物理上不可持续**的优化器行为：
+
+| 病理 | CPL 响应 |
+|------|----------|
+| 递归委派环（`A→D→F→A`） | 超过 `maxRecursionDepth` → **ISOLATED** |
+| 意图爆发（上万内部 Task） | 熵 / burst 压力 → **THROTTLED** 或熔断 |
+| 上下文雪崩逼近 OOM | 内存 + 上下文字节 → **THROTTLED** / **ISOLATED** |
+
+摩擦在**提交之前**施加，且**后果可持久**——失控轨迹无法靠拆成语法合法的小步来逃避。
+
+**主要对象是堆叠失控**，不是语义上的「坏 intent」。企业网主要是自家 planner 链失控；开放 P2P 网另加**物理恶意 peer**（过载导出、传染）——由 CVP 与入站法则 containment，而非读懂消息含义。
+
+理论全文：[白皮书 v2 §2 CPL](docs/whitepaper-v2/whitepaper-v2-protocol-edition.md#consequence-persistence-layer) · [§3 意图前执法](docs/whitepaper-v2/whitepaper-v2-protocol-edition.md#pre-intent-enforcement)
 
 ---
 
@@ -76,7 +225,65 @@ ASP 等应用层信令解决的是**路口交通灯**问题：
 
 **立场：** 信令不是敌人；把它当作*唯一*防线才是架构失误。AFP 位于应用协议**之下** —— 类似 Envoy 之于 HTTP、cgroup 之于进程：带外、微秒级、fail-closed。
 
-详见白皮书 v2 · [第 1 章 — 优化危机](docs/whitepaper-v2/chapter-01-optimization-crisis.md) · [完整目录](docs/whitepaper-v2/)
+详见白皮书 v2 · [完整协议版](docs/whitepaper-v2/whitepaper-v2-protocol-edition.md)
+
+---
+
+## 协议定位
+
+AFP **不替代** gRPC、HTTP、Kafka、NATS、MCP 或 LangGraph。它**叠加**在你已有的传输层与框架之上。
+
+### 常被混为一谈的三种「Agent 通信」
+
+| 层次 | 例子 | 归属 |
+|------|------|------|
+| **对话（Conversation）** | 多轮 Chat、Prompt、会话状态 | LLM / 应用层 |
+| **数据传递（Data passing）** | `{ task_result, confidence }` 走 gRPC、Kafka、MCP | 既有消息栈 |
+| **运行时信令（Runtime signaling）** | PreFlight 裁决、GovernanceHeader 认证、持久 FSM | **AFP（L2–L4）** |
+
+把三者统称「Agent 通信协议」是 AFP 要修正的架构误区。AFP 管的是**运行时资格与后果**，不管聊天语法，也不管业务载荷 schema。
+
+### 企业真正要约束的是什么
+
+AFP **不禁止** Agent A → Agent B，而是约束**不可持续的优化轨迹**：
+
+| 允许 | 在运行时边界拦截 |
+|------|------------------|
+| 策略内的 Planner → A → B → C | 超过 `maxRecursionDepth` 的递归环（A → D → F → A） |
+| 熵预算内的委派 | 意图爆发、上下文雪崩逼近 OOM |
+| 既有传输上的对等流量 | 会话仍「合法」但物理上失控的涌现行为 |
+
+这是**物理后果**，不是工作流审批。AFP 是**运行时边界**（Sidecar + SEA），不是工作流引擎，也不是中央编排器。
+
+### Sidecar Mesh，而非中央网关
+
+零信任不要求单一 choke-point 网关。AFP 采用 **Service Mesh 模式**：
+
+```text
+Agent  →  AFP Sidecar  →  mTLS  →  AFP Sidecar  →  Agent
+```
+
+信任 enforcement 在 **Sidecar**（本地 PreFlight、入站 GovernanceHeader）——与每 Pod 旁 Envoy 同一问责模型。中央网关与 Sidecar Mesh 都可以是零信任；AFP 选择**每节点执法**。
+
+**开放 profile 附加：** 入站陌生人税 + CVP 地板；带签拓扑流言（验签失败即丢）。CVP 仍是**每个 Sidecar 的本地账本**——多副本不共享全局后果存储。
+
+### 三个 Plane（勿混用）
+
+| Plane | 例子 | AFP 角色 |
+|-------|------|----------|
+| **Agent 控制面** | Planner、LangGraph DAG、工具图 | L1 可观测；AFP **不规定** |
+| **数据面** | 载荷、缓存、流式 | gRPC/Kafka/MCP 承载；**超出范围** |
+| **协调面** | 资格、后果、摩擦、依赖信任 | **L2–L4 核心** — CPL、SEA、CVP、Policy Surface |
+
+> *说明：* K8s 文档里的「control plane」指 Operator / Policy Controller（L3），是**策略管理**，不是 Agent 的 Planner 控制面。
+
+### AFP 回答的问题
+
+企业已有成熟的**字节怎么传**。AFP 回答一个更小、更易落地的问题：
+
+> **当 Agent 已经能够通信时，如何让每次协调具有一致的运行时语义、且后果可持久？**
+
+传输负责送达。AFP 负责**提交之前的治理**。
 
 ---
 
@@ -207,7 +414,7 @@ go run ./cmd/demo/simulator
 | **Phase 1** | 数据面 · SDK · LangGraph · K8s 伴生 · CRD Operator · demo-agent |
 | **Phase 2** | 策略推流 · Operator 桥接 · TokenReview · revision 续传 · **mTLS** · **状态回写** · **删除传播** · GHCR CI |
 
-**代码冻结于 PR-6c。** 生产加固：[`ROADMAP.md`](ROADMAP.md) · 理论：[白皮书 v2.0 协议版](docs/whitepaper-v2/) · v1 存档：[Zenodo](https://zenodo.org/records/20674352)
+**代码冻结于 PR-6c。** 生产加固：[`ROADMAP.md`](ROADMAP.md) · 理论：[白皮书 v2.0 协议版](docs/whitepaper-v2/whitepaper-v2-protocol-edition.md) · v1 存档：[Zenodo](https://zenodo.org/records/20674352)
 
 ---
 
