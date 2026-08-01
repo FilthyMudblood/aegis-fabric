@@ -14,7 +14,7 @@
 
 **Aegis Fabric Protocol（AFP）** 是**后果持久层（CPL）**——插在「Agent 能通信」和「系统能存活」之间的那一格**协调运行时**刹车。参考实现为 K8s Sidecar；**协议**对企业 multi-agent 与开放 P2P agent 网络通用。
 
-English · [`README.md`](README.md) · 白皮书 · **[v2 协议版（完整版）](docs/whitepaper-v2/whitepaper-v2-protocol-edition.md)** · [v1 Zenodo 存档](https://zenodo.org/records/20674352)
+English · [`README.md`](README.md) · 白皮书 · **[v2 Protocol Edition（英文）](docs/whitepaper-v2/whitepaper-v2-protocol-edition.md)** · [v1 Zenodo 存档](https://zenodo.org/records/20674352)
 
 ### 市场空白
 

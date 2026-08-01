@@ -1,10 +1,12 @@
-# AFP Whitepaper v2.0 — Protocol Edition
+# Aegis Fabric Protocol Whitepaper v2.0 — Protocol Edition
 
 ## Read the whitepaper
 
-**[whitepaper-v2-protocol-edition.md](./whitepaper-v2-protocol-edition.md)** — complete unified document (Draft v0.3)
+**[whitepaper-v2-protocol-edition.md](./whitepaper-v2-protocol-edition.md)** — GitHub Protocol Edition (Draft v0.3)
 
-Normative protocol specification (stack diagrams, object schemas, code map): **[`ARCHITECTURE.md`](../../ARCHITECTURE.md)** at repository root.
+Narrative-first English edition: full names in prose, mechanisms explained in-line, reader glossary with “short for” expansions.
+
+Implementer diagrams, protobuf schemas, and code map: **[`ARCHITECTURE.md`](../../ARCHITECTURE.md)** at repository root (supplementary—not a substitute for the whitepaper body).
 
 **v1** (empirical baseline, archived): [Zenodo 20674352](https://zenodo.org/records/20674352)
 
@@ -14,10 +16,15 @@ Normative protocol specification (stack diagrams, object schemas, code map): **[
 
 | Track | Audience |
 |-------|----------|
-| **Protocol** (whitepaper + root ARCHITECTURE) | Researchers, protocol engineers |
+| **Protocol** (this whitepaper + root ARCHITECTURE) | Researchers, protocol engineers, GitHub readers |
 | **Enterprise** (README, deploy/kubernetes) | Platform, security, compliance |
 
-**Protocol writing bans:** K8s nouns in whitepaper body; use L3 “Policy Surface” abstraction.
+**Writing rules for the GitHub whitepaper:**
+
+- Prefer **full names** in body prose (e.g. Single Execution Authority, Consequence Persistence Layer, Coordination Viability Probability).
+- Glossary states what each short form is **short for**; do not force readers to memorize acronyms.
+- Do not replace mechanism explanation with “see ARCHITECTURE”—put the control law in the whitepaper; ARCHITECTURE holds diagrams/schemas/code map.
+- No Kubernetes nouns in whitepaper body; use “Policy Surface” abstraction.
 
 ---
 
